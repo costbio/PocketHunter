@@ -1,0 +1,10 @@
+pandas
+matplotlib
+tqdm
+glob2
+seaborn
+scipy
+numpy
+nglview
+mdtraj
+scikit-learn
