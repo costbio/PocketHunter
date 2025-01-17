@@ -7,7 +7,6 @@ This repository contains a set of scripts to convert trajectory files to PDB for
 - [Usage](#usage)
   - [Convert and Rank](#convert-and-rank)
   - [Pocket Detection](#pocket-detection)
-- [Scripts Overview](#scripts-overview)
 - [Configuration](#configuration)
 - [License](#license)
 
