@@ -35,7 +35,7 @@ python main_cli.py pocket_detection --xtc path/to/your.xtc --topology path/to/yo
 
 ### Convert to PDB
 
-Convert XTC files to PDB format and run P2Rank on the generated PDB files.
+Convert XTC files to PDB files.
 
 ```bash
 python main_cli.py convert_to_pdb --xtc path/to/your.xtc --topology path/to/your_topology.pdb --output path/to/output_dir
