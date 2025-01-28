@@ -5,8 +5,8 @@ This repository contains a set of scripts to convert trajectory files to PDB for
 ## Table of Contents
 - [Installation](#installation)
 - [Usage](#usage)
-  - [Convert and Rank](#convert-and-rank)
   - [Pocket Detection](#pocket-detection)
+  - [Convert to PDB](#convert-to-pdb)
 - [Configuration](#configuration)
 - [License](#license)
 
@@ -25,21 +25,22 @@ This repository contains a set of scripts to convert trajectory files to PDB for
 
 ## Usage
 
-### Convert and Rank
+### Pocket Detection
+
+Run the full pocket detection pipeline, which includes converting XTC files to PDB format, running P2Rank for pocket detection, and generating a heatmap of representative pockets at the specified clustering depth.
+
+```bash
+python main_cli.py pocket_detection --xtc path/to/your.xtc --topology path/to/your_topology.pdb --depth 5 --threads 4 --output path/to/output_dir
+```
+
+### Convert to PDB
 
 Convert XTC files to PDB format and run P2Rank on the generated PDB files.
 
 ```bash
-python main_cli.py convert_and_rank --xtc path/to/your.xtc --topology path/to/your_topology.pdb
+python main_cli.py convert_to_pdb --xtc path/to/your.xtc --topology path/to/your_topology.pdb --output path/to/output_dir
 ```
 
-### Pocket Detection
-
-Convert XTC files to PDB format, run P2Rank, and generate a heatmap of representative pockets at the specified clustering depth.
-
-```bash
-python main_cli.py pocket_detection --xtc path/to/your.xtc --topology path/to/your_topology.pdb --depth 5
-```
 ## Configuration
 
 The configuration settings are defined in the `get_config()` function in `main_cli.py`. You can modify the paths and directories as needed.
