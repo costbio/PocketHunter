@@ -18,7 +18,7 @@ def load_pdb_list(pdb_list_file):
         pdb_files = [line.strip() for line in f.readlines()]
     return pdb_files
 
-def merge_to_csv(processed_dir, pdb_file_list):
+def merge_to_csv(outfolder, pdb_file_list, config):
     """
     Writes the pocket predictions data into a CSV file.
     
@@ -30,14 +30,16 @@ def merge_to_csv(processed_dir, pdb_file_list):
     - None
     """
 
+    logger = config['logger']
     # Load the pdb list from the .ds file
     pdb_list = load_pdb_list(pdb_file_list)
     # Define the output CSV filename
-    csv_filename = os.path.join(processed_dir, "pockets.csv")
+    csv_filename = os.path.join(outfolder, "pockets.csv")
     
     # Ensure the directory exists
     os.makedirs(os.path.dirname(csv_filename), exist_ok=True)
 
+    logger.info('Compiling pocket predictions into summary csv files.')
     # Open CSV file for writing
     with open(csv_filename, "w", newline="") as csvfile:
         csvwriter = csv.writer(csvfile)
@@ -49,8 +51,8 @@ def merge_to_csv(processed_dir, pdb_file_list):
         for pdb_file in pdb_list:
             #print(f"pdb file:{pdb_file}")
             # Define paths for prediction and residues files
-            predictions_file = os.path.join(processed_dir, os.path.basename(pdb_file).replace('.pdb', '.pdb_predictions.csv'))
-            residues_file = os.path.join(processed_dir, os.path.basename(pdb_file).replace('.pdb', '.pdb_residues.csv'))
+            predictions_file = os.path.join(outfolder, os.path.basename(pdb_file).replace('.pdb', '.pdb_predictions.csv'))
+            residues_file = os.path.join(outfolder, os.path.basename(pdb_file).replace('.pdb', '.pdb_residues.csv'))
             #print(f"predictions:{predictions_file} and residues:{residues_file}")
 
             # Skip if predictions file doesn't exist
@@ -60,7 +62,7 @@ def merge_to_csv(processed_dir, pdb_file_list):
             # Extract the frame number from the PDB file name
             frame_number = extract_frame_number(os.path.basename(pdb_file))
             if not frame_number:
-                print(f"Frame number not found for {pdb_file}. Skipping.")
+                logger.info(f"Frame number not found for {pdb_file}. Skipping.")
                 continue
 
             # Open predictions CSV file
@@ -68,6 +70,8 @@ def merge_to_csv(processed_dir, pdb_file_list):
                 reader = csv.DictReader(pred_file)
                 for row in reader:
                     # Check if probability is higher than 0.5
+                    # TO-DO: THIS CAN BE MADE ADJUSTABLE BY THE USER!
+
                     if float(row[' probability']) > 0.5:
                         pocket_index = row['  rank']  # Pocket index
                         full_name = os.path.basename(pdb_file)[:-4]  # Get the PDB file name as the File name
@@ -77,23 +81,3 @@ def merge_to_csv(processed_dir, pdb_file_list):
                         # Write data to the CSV file
                         csvwriter.writerow([full_name, frame_number, pocket_index, probability, residues])
     return csv_filename
-
-    # Sort the CSV file by frame_number as integers
-    with open(csv_filename, 'r') as csvfile:
-        csv_reader = csv.DictReader(csvfile)
-        sorted_rows = sorted(csv_reader, key=lambda x: int(x['Frame']))
-
-    # Rewrite the CSV file with sorted rows
-    with open(csv_filename, 'w', newline='') as csvfile:
-        fieldnames = ["File name", 'Frame', 'pocket_index', 'probability', 'residues']
-        csv_writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        
-        csv_writer.writeheader()
-        for row in sorted_rows:
-            csv_writer.writerow(row)
-
-    print("CSV file sorted and saved.")
-
-
-# Example of how to call this function:
-# merge_to_csv(processed_dir, pdb_list)
