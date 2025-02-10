@@ -169,6 +169,10 @@ def main():
     parser_convert.add_argument('--outfolder', type=str, help='Output folder')
 
     args = parser.parse_args()
+
+    if args.command is None:
+        parser.print_help()
+        return  # Exit without running anything    
     
     # Load configuration with user-specified output directory
     config = get_config(args.outfolder)
