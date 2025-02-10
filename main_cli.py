@@ -149,7 +149,7 @@ def main():
     # Full pipeline
     parser_pocket = subparsers.add_parser("full_pipeline", help="Full pipeline for pocket prediction")
     parser_pocket.add_argument("--xtc", required=True, help="Input XTC trajectory file")
-    parser_pocket.add_argument("--topology", required=True, help="Topology PDB file")
+    parser_pocket.add_argument("--topology", required=True, help="Topology PDB/GRO file")
     parser_pocket.add_argument("--clustering_depth", type=int, required=True, help="Clustering depth")
     parser_pocket.add_argument("--numthreads", type=int, default=4, help="Number of parallel threads (default: 4)"),
     parser_pocket.add_argument("--stride", type=int, default=1, help="Stride applied for frame extraction"),
@@ -158,7 +158,7 @@ def main():
     # Extract frames from XTC
     parser_convert = subparsers.add_parser("extract_to_pdb", help="Extract frames from XTC to PDB files")
     parser_convert.add_argument("--xtc", required=True, help="Input XTC trajectory file")
-    parser_convert.add_argument("--topology", required=True, help="Topology PDB file")
+    parser_convert.add_argument("--topology", required=True, help="Topology PDB/GRO file")
     parser_convert.add_argument("--stride", type=int, default=1, help="Stride applied for frame extraction")
     parser_convert.add_argument('--outfolder', type=str, help='Output folder')
 
@@ -170,9 +170,9 @@ def main():
 
     args = parser.parse_args()
 
-    if args.command is None:
+        if args.command is None:
         parser.print_help()
-        return  # Exit without running anything    
+        return  # Exit without running anything
     
     # Load configuration with user-specified output directory
     config = get_config(args.outfolder)
