@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import tqdm
+import math
 import glob
 import subprocess
 import csv
@@ -13,189 +14,126 @@ from IPython.display import display
 
 from scipy.spatial.distance import cdist
 
-from scipy.cluster import hierarchy
-from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.cluster import DBSCAN
+from sklearn.metrics import silhouette_score
+from scipy.spatial.distance import hamming
+
+def optimized_dbscan(df, cols_2cluster, outfolder, logger):
+    """
+    Performs optimized DBSCAN on a dataframe to maximize the silhouette coefficient.
+
+    Args:
+        df: Pandas DataFrame containing the samples, with features in different columns.
+        initial_eps_range: Tuple defining the initial search range for epsilon.
+        initial_min_samples_range: Tuple defining the initial search range for min_samples.
+
+    Returns:
+        A tuple containing:
+            - The best DBSCAN model found.
+            - The maximum silhouette coefficient achieved.
+            - A dictionary containing the search history (eps, min_samples, silhouette_score).  
+            - The scaled dataframe used for clustering
+    """
+
+    best_silhouette = -1  # Initialize with a value lower than any possible silhouette score
+    best_model = None
+
+    num_cols = len(cols_2cluster)
+    logger.info(f'Number of pocket-forming residues: {num_cols}')
+    num_frames = len(np.unique(df['Frame'].values))
+    eps_range = np.arange(start=1/num_cols, stop=10/num_cols, step=0.005)
+    logger.info(f'Number of frames: {num_frames}')
+    if num_frames > 100:
+        min_samples = math.ceil(num_frames*0.005)
+    else:
+        min_samples = math.ceil(num_frames*0.02)
+
+    max_samples = math.ceil(num_frames*0.2)
+
+    df.pop('Frame')
+
+    # More efficient search strategy (you can customize this):
+    optim_count = 1
+    for eps in eps_range:  
+        for min_sample in np.arange(min_samples, max_samples, max_samples*0.1):
+            min_sample = int(min_sample)
+
+            try:
+                model = DBSCAN(eps=eps, min_samples=min_sample, n_jobs=40, metric='hamming')
+                labels = model.fit_predict(df[cols_2cluster])
+
+                # Silhouette score requires at least 2 clusters
+                n_clusters = len(set(labels)) - (1 if -1 in labels else 0) # account for noise points
+                logger.info(f'Optimizing round {optim_count} eps={eps} min_sample={min_sample} num_clusters={n_clusters}')
+                if n_clusters >= 2:
+                    silhouette = silhouette_score(df, labels)
+                    logger.info(f'Silhouette score: {silhouette}')
+                    
+                    if silhouette > best_silhouette:
+                        best_silhouette = silhouette
+                        best_model = model
+                        logger.info(best_silhouette)
+            except Exception as e: # Catch potential errors (e.g., all points assigned to noise)
+                logger.info(f"Error with eps={eps}, min_samples={min_samples}: {e}")
+
+            optim_count += 1
 
 
+    return best_model, best_silhouette, df
 
-def cluster_pockets(p2rank_output_folder,pdb_location, depth, plot=True):
 
-    csv_file_dir = f"{p2rank_output_folder}/pockets.csv"
+def cluster_pockets(infolder, outfolder, method, depth, config):
 
-    # Step 1: Read the CSV file
+    logger = config['logger']
+
+    csv_file_dir = f"{infolder}/pockets.csv"
+    
     data = pd.read_csv(csv_file_dir)
 
-    residues = data['residues'].str.split()
-    mlb = MultiLabelBinarizer()
-    residues_encoded = mlb.fit_transform(residues)
-    residue_list = mlb.classes_
-    for i in range(0,len(residue_list)):
-        res = residue_list[i]
-        data[res] = residues_encoded[:,i]
-    data['frame_pocket'] = ['Frame:{} Index:{}'.format(f, p) for f, p in zip(map(str, data['Frame']), map(str, data['pocket_index']))]
-    data.index = data['frame_pocket']
-    dataindex = data['frame_pocket']
-    data_2cluster = data.drop(columns=['File name','Frame','pocket_index','probability','residues','frame_pocket'])
-    linkage = hierarchy.linkage(data_2cluster, method='ward')
-    full_heatmap = sns.clustermap(data_2cluster, method='ward', cmap='viridis', row_cluster=True, col_cluster=False)
-    if plot:
-        plt.show()
+    all_residues = []
+    for index, row in data.iterrows():
+        residues_in_row = row['residues'].split(' ')
+        all_residues.extend(residues_in_row)
 
-    # Get the clusters at the chosen depth
-    # Depth is the value to choose the depth you want to explore
-    cutree = hierarchy.cut_tree(linkage, n_clusters=depth)
-    # Function to calculate Euclidean distance
-    def euclidean_distance(p, q):
-        return np.sqrt(np.sum((p - q)**2))
-    # Get representatives from each cluster at the chosen depth
-    representatives = []
+    unique_residues = sorted(list(set(all_residues)))  # Get unique residues and sort them for consistency
 
-    list_rep_pockets = list()
+    # Function to create binary vector
+    def sequence_to_binary(sequence, residues_list):
+        binary_vector = [1 if res in sequence else 0 for res in residues_list]
+        return pd.Series(binary_vector, index=residues_list)
 
-    for cluster_id in range(depth):
-        indices = [i for i, c in enumerate(cutree) if c[0] == cluster_id]
-        if indices:
-            cluster_points = residues_encoded[indices]
-            #print(cluster_points)
-            centroid = np.mean(cluster_points, axis=0)  # Calculate centroid/mean of the cluster
-            # Find euclidean distance of each cluster point to the centroid
-            distances = [euclidean_distance(centroid, point) for point in cluster_points]
-            # Find the point closest to the centroid
-            representative_index = np.argmin(distances)
+    # Apply the function and create the binary DataFrame
+    logger.info('Binarizing the pocket data frame.')
+    binary_df = data['residues'].apply(lambda res_str: sequence_to_binary(res_str, unique_residues))
+    #binary_df.to_csv(os.path.join(outfolder,'binary_df.csv')) # For debugging.
 
-            representative = cluster_points[representative_index]
-            # Find the row in the original data frame that has this representative_index
-            representative_pockets = data.iloc[indices[representative_index]]
-
-            list_rep_pockets.append(representative_pockets)
-
-            # File the representative pocket and the cluster it belongs to
-            representatives.append((cluster_id, representative_pockets))
-
-            #print(representative_pockets[4], type(representative_pockets))
-
-    #For heatmap, we need a list of amino acids. Let's extract.
-
-    filenames = list(data["File name"]) # List of the files in dataframe
-    aminoacids = {} #New dict to keep new data
-
-    for file in filenames:
-        path = os.path.join(p2rank_output_folder,f"{file}.pdb_residues.csv")
-        print(f"Adding for {path}...")
-        residue_file = pd.read_csv(path) # current conformation's resnum=resid data is read
-        residue_file.columns = residue_file.columns.str.strip()
-        for _, row in residue_file.iterrows():
-            aminoacids[row['residue_label']] = row['residue_name']
+    # Concatenate with the original DataFrame (optional)
+    data = pd.concat([data, binary_df], axis=1)
     
-    aminoacids = dict(sorted(aminoacids.items()))
+    if method == 'dbscan':
+        logger.info('Clustering using the DBSCAN algorithm.')
 
-    residue_names = list(aminoacids.values())
+        # Merge Frame and pocket_index columns to be use it as index
+        data['Frame_pocket_index'] = data['Frame'].astype(str) + '_' + data['pocket_index'].astype(str)
 
-    # After dropping the unnecessary columns
-    data_df_for_aminoacids = data.drop(columns=['residues', 'frame_pocket', 'probability', 'File name', 'Frame', 'pocket_index'])
+        # Set Frame column as the index.
+        data.set_index('Frame_pocket_index', inplace=True)
 
-    # Extract the list of remaining columns (residue numbers)
-    residue_columns = data_df_for_aminoacids.columns.tolist()
+        data_2cluster = data[['Frame']+list(unique_residues)].copy()
+        #data_2cluster.to_csv(os.path.join(outfolder,'data_2cluster.csv')) # For debugging.
 
-    # Print the list of columns
-    #print(residue_columns)
+        best_model, best_silhouette, df = optimized_dbscan(data_2cluster, unique_residues, outfolder, logger)
 
-    # Convert the target amino acids to a set for faster lookup
-    target_set = set([int(x.split('_')[1]) for x in residue_columns])
+        logger.info(f"Best DBSCAN Model: {best_model}")
+        logger.info(f"Best Silhouette Score: {best_silhouette}")
 
-    aminoacid_list = {key: value for key, value in aminoacids.items() if key in target_set}
+        # Get the labels from the best model:
+        if best_model:
+            labels = best_model.labels_
+            data['cluster'] = labels # Add cluster labels back to the original dataframe
+            data.to_csv(os.path.join(outfolder,'pockets_clustered.csv'))
+        else:
+            logger.info("No suitable DBSCAN model found (no valid clustering achieved).")
 
-    aminoacid_list = list(aminoacid_list.values())
-
-    aminoacid_list = [item.strip() for item in aminoacid_list]
-
-    amino_acid_map = {
-    'MET': 'M', 'ASP': 'D', 'PRO': 'P', 'GLU': 'E', 'LEU': 'L', 'HIS': 'H',
-    'CYS': 'C', 'ARG': 'R', 'TYR': 'Y', 'GLY': 'G', 'ALA': 'A', 'PHE': 'F',
-    'GLN': 'Q', 'VAL': 'V', 'LYS': 'K', 'SER': 'S', 'ILE': 'I', 'THR': 'T',
-    'ASN': 'N', 'TRP': 'W'}
-
-    one_letter_amino_acids = [amino_acid_map[aa] for aa in aminoacid_list]
-
-    ylabel = []
-    for i in range(len(one_letter_amino_acids)):
-        x = f"{residue_columns[i]}_{one_letter_amino_acids[i]}"
-        ylabel.append(x)
-
-    #print(new_dict)
-
-
-
-
-    df_rep_pockets = pd.DataFrame(list_rep_pockets)
-
-    df_rep_pockets['frame_pocket'] = ['Frame:{} Index:{}'.format(f, p) for f, p in zip(map(str, df_rep_pockets['Frame']), map(str, df_rep_pockets['pocket_index']))]
-    df_rep_pockets.index = df_rep_pockets['frame_pocket']
-    repdataindex = df_rep_pockets['frame_pocket']
-    data_2cluster = df_rep_pockets.drop(columns=['File name','Frame','pocket_index','probability','residues','frame_pocket'])
-    linkage = hierarchy.linkage(data_2cluster, method='ward')
-    rep_heatmap = sns.clustermap(data_2cluster, method='ward', cmap='viridis', row_cluster=True, col_cluster=False)
-    if plot:
-        plt.show()
-
-
-    for rep in representatives:
-        filename = rep[1]['File name']
-        file_path = os.path.join(pdb_location, f"{filename}.pdb")
-        print(f"Cluster {filename}:")
-        print(f"File name: {file_path}")
-        print(rep[1]['residues'])
-
-        if not os.path.isfile(file_path):
-            print(f"Warning: File does not exist - {pdb_location}/{file_path}.pdb")
-            continue
-
-        if plot:
-            try:
-                view = nv.show_structure_file(file_path)
-                view.add_cartoon()
-                resnums = [el[2:] for el in rep[1]['residues'].split(' ') if el.startswith('P_')]
-                resnums_nglview_sel = ' or '.join(resnums)
-                view.add_surface(f':P and ({resnums_nglview_sel})')
-                display(view)
-            except Exception as e:
-                print(f"Error loading file {file_path}: {e}")
-
-
-    return df_rep_pockets, full_heatmap, rep_heatmap, dataindex, repdataindex, ylabel
-
-
-def main(csv_file_path, output_file_path, pdb_location, clustering_depth, plot=True):
-    """
-    Main function to handle PDB file processing and clustering analysis.
-    
-    Parameters:
-        csv_file_path (str): Path to the input CSV file.
-        output_file_path (str): Path to save the output file.
-        clustering_depth (int): Number of clusters for hierarchical clustering.
-        pdb_location (str): Path to the pdb files' folder.
-        plot (bool): Whether to plot the heatmaps.
-    """
-    try:
-        # Ensure the required file exists
-        if not os.path.exists(csv_file_path):
-            raise FileNotFoundError(f"CSV file not found: {csv_file_path}")
-
-        print("Starting clustering analysis...")
-        
-        # Perform clustering analysis on P2Rank output
-        df_rep_pockets, full_heatmap, rep_heatmap, dataindex, repdataindex, ylabel = cluster_pockets(csv_file_path, pdb_location, clustering_depth, plot)
-
-        # Save heatmaps as PNG files
-        full_heatmap_path = os.path.splitext(output_file_path)[0] + "_full_heatmap.png"
-        rep_heatmap_path = os.path.splitext(output_file_path)[0] + "_rep_heatmap.png"
-        
-        full_heatmap.savefig(full_heatmap_path)
-        rep_heatmap.savefig(rep_heatmap_path)
-        
-        print(f"Full heatmap saved to {full_heatmap_path}")
-        print(f"Representative heatmap saved to {rep_heatmap_path}")
-    
-    except Exception as e:
-        print(f"An error occurred: {e}")
+        logger.info('Clustering complete.')
 
