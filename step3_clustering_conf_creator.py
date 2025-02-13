@@ -86,6 +86,9 @@ def cluster_pockets(infolder, outfolder, method, depth, config):
 
     logger = config['logger']
 
+    if not os.path.exists(outfolder):
+        os.makedirs(outfolder)
+
     csv_file_dir = f"{infolder}/pockets.csv"
     
     data = pd.read_csv(csv_file_dir)
