@@ -17,6 +17,7 @@ from scipy.spatial.distance import cdist
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import silhouette_score
 from scipy.spatial.distance import hamming
+from collections import Counter
 
 def optimized_dbscan(df, cols_2cluster, outfolder, logger):
     """
@@ -41,8 +42,16 @@ def optimized_dbscan(df, cols_2cluster, outfolder, logger):
     num_cols = len(cols_2cluster)
     logger.info(f'Number of pocket-forming residues: {num_cols}')
     num_frames = len(np.unique(df['Frame'].values))
+
+    # eps_range is defined based on a range of maximum similarity between pockets in the same cluster.
+    # accordingly, two pockets may shared up to 1-10 pocket-forming amino acids to be similar.
+    # if the difference is higher, then they won't be clustered together.
+    # Optimum range is found based on silhouette coefficient determined below.
     eps_range = np.arange(start=1/num_cols, stop=10/num_cols, step=0.005)
     logger.info(f'Number of frames: {num_frames}')
+
+    # min_samples is the minimum number of samples (frames) each cluster must include.
+    # this is to filter out irrelevant pockets that might have been observed by chance.
     if num_frames > 100:
         min_samples = math.ceil(num_frames*0.005)
     else:
@@ -50,12 +59,17 @@ def optimized_dbscan(df, cols_2cluster, outfolder, logger):
 
     max_samples = math.ceil(num_frames*0.2)
 
+    min_sample_range = np.arange(min_samples, max_samples, max_samples*0.1)
+
     df.pop('Frame')
 
     # More efficient search strategy (you can customize this):
     optim_count = 1
+
+    total_optim_count = len(eps_range) * len(min_sample_range)
+
     for eps in eps_range:  
-        for min_sample in np.arange(min_samples, max_samples, max_samples*0.1):
+        for min_sample in min_sample_range:
             min_sample = int(min_sample)
 
             try:
@@ -64,10 +78,10 @@ def optimized_dbscan(df, cols_2cluster, outfolder, logger):
 
                 # Silhouette score requires at least 2 clusters
                 n_clusters = len(set(labels)) - (1 if -1 in labels else 0) # account for noise points
-                logger.info(f'Optimizing round {optim_count} eps={eps} min_sample={min_sample} num_clusters={n_clusters}')
+                logger.info(f'Optimizing round {optim_count}/{total_optim_count} eps={eps} min_sample={min_sample} num_clusters={n_clusters}')
                 if n_clusters >= 2:
                     silhouette = silhouette_score(df, labels)
-                    logger.info(f'Silhouette score: {silhouette}')
+                    #logger.info(f'Silhouette score: {silhouette}')
                     
                     if silhouette > best_silhouette:
                         best_silhouette = silhouette
@@ -81,8 +95,22 @@ def optimized_dbscan(df, cols_2cluster, outfolder, logger):
 
     return best_model, best_silhouette, df
 
+# Function to get medoids
+def get_cluster_medoids(data, labels, unique_residues):
+    """
+    Calculates medoids for each cluster and returns the corresponding rows from the original DataFrame.
+    """
+    medoid_indices = []
+    for cluster_label in set(labels):
+        if cluster_label!= -1:
+            cluster_points = data[labels == cluster_label][unique_residues]
+            # Removed.to_numpy() - hamming can handle Series directly
+            distances = np.array([[hamming(point1, point2) for point2 in cluster_points.values] for point1 in cluster_points.values])
+            medoid_index = np.argmin(distances.sum(axis=0))
+            medoid_indices.append(cluster_points.index[medoid_index])
+    return data.loc[medoid_indices]
 
-def cluster_pockets(infolder, outfolder, method, depth, config):
+def cluster_pockets(infolder, outfolder, method, depth, min_prob, config):
 
     logger = config['logger']
 
@@ -93,10 +121,16 @@ def cluster_pockets(infolder, outfolder, method, depth, config):
     
     data = pd.read_csv(csv_file_dir)
 
+    # Filter by min_prob
+    data = data[data['probability'] >= min_prob]
+
     all_residues = []
     for index, row in data.iterrows():
         residues_in_row = row['residues'].split(' ')
         all_residues.extend(residues_in_row)
+
+    # Remove '' from all_residues
+    all_residues = [residue for residue in all_residues if residue != '']
 
     unique_residues = sorted(list(set(all_residues)))  # Get unique residues and sort them for consistency
 
@@ -108,7 +142,7 @@ def cluster_pockets(infolder, outfolder, method, depth, config):
     # Apply the function and create the binary DataFrame
     logger.info('Binarizing the pocket data frame.')
     binary_df = data['residues'].apply(lambda res_str: sequence_to_binary(res_str, unique_residues))
-    #binary_df.to_csv(os.path.join(outfolder,'binary_df.csv')) # For debugging.
+    binary_df.to_csv(os.path.join(outfolder,'binary_df.csv')) # For debugging.
 
     # Concatenate with the original DataFrame (optional)
     data = pd.concat([data, binary_df], axis=1)
@@ -127,7 +161,6 @@ def cluster_pockets(infolder, outfolder, method, depth, config):
 
         best_model, best_silhouette, df = optimized_dbscan(data_2cluster, unique_residues, outfolder, logger)
 
-        logger.info(f"Best DBSCAN Model: {best_model}")
         logger.info(f"Best Silhouette Score: {best_silhouette}")
 
         # Get the labels from the best model:
@@ -135,8 +168,20 @@ def cluster_pockets(infolder, outfolder, method, depth, config):
             labels = best_model.labels_
             data['cluster'] = labels # Add cluster labels back to the original dataframe
             data.to_csv(os.path.join(outfolder,'pockets_clustered.csv'))
+            for lbl in np.unique(labels):
+                if lbl == -1:
+                    percentage_noise = (labels == -1).sum() / len(labels) * 100
+                    logger.info(f"Percentage of noise pockets: {percentage_noise:.2f}%")
+                else:
+                    percentage_cluster = (labels == lbl).sum() / len(labels) * 100
+                    logger.info(f"Percentage of cluster {lbl}: {percentage_cluster:.2f}%")
+            logger.info('Identifying cluster representatives...')
+            medioids = get_cluster_medoids(data, labels, unique_residues)
+            logger.info('Identifying cluster representatives... Done.')
+            logger.info('Saving cluster representatives to a CSV file...')
+            medioids.to_csv(os.path.join(outfolder,'cluster_representatives.csv'))
+            logger.info('Clustering complete.')
+            
         else:
             logger.info("No suitable DBSCAN model found (no valid clustering achieved).")
-
-        logger.info('Clustering complete.')
 

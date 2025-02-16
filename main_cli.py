@@ -145,9 +145,9 @@ def cluster_pockets(args, config):
     outfolder = args.outfolder
     method = args.method
     depth = args.depth
+    min_prob = args.min_prob
 
-    ### TO-DO ###
-    step3_clustering_conf_creator.cluster_pockets(infolder, outfolder, method, depth, config)
+    step3_clustering_conf_creator.cluster_pockets(infolder, outfolder, method, depth, min_prob, config)
 
 def main():
     # Initialize argument parser
@@ -166,6 +166,7 @@ def main():
     parser_full.add_argument("--depth", type=int, default=4, help="Clustering depth.")
     parser_full.add_argument("--method", type=str, choices=["hierarchical","dbscan"], 
                                 help='Clustering method. Choose between hierarchical and dbscan.')
+    parser_full.add_argument("--min_prob",type=float, default=0.5, help="Minimum ligand-binding probability for clustering (default: 0.5).")
     parser_full.add_argument("--numthreads", type=int, default=4, help="Number of parallel threads (default: 4)."),
     parser_full.add_argument("--stride", type=int, default=1, help="Stride applied for frame extraction."),
     parser_full.add_argument('--outfolder', type=str, default='.', help='Output folder.')
@@ -193,6 +194,7 @@ def main():
     parser_cluster.add_argument("--depth", type=int, default=4, 
                                 help='Clustering depth parameter for identification of representatives pockets from '
                                 'hierarchical clustering.')
+    parser_cluster.add_argument("--min_prob",type=float, default=0.5, help="Minimum ligand-binding probability for clustering (default: 0.5).")
 
     args = parser.parse_args()
 
