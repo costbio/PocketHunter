@@ -4,7 +4,7 @@
 
 PocketHunter is a command-line tool for detection and characterization of potential small molecule binding pockets in protein molecular simulation trajectories. 
 
-The tool can be used to:
+PocketHunter can be used to:
 
 * characterize druggable small-molecule binding pockets using p2rank from protein molecular simulation trajectories in XTC format. 
 * identify potential cryptic binding pockets.
