@@ -1,4 +1,4 @@
-# CLI Tool for Trajectory Analysis and Pocket Detection
+# PocketHunter: A command-line tool for pocket detection in biomolecular simulation trajectories
 
 **IMPORTANT:** This tool is currently under development, and may contain serious bugs. Use it at your own risk.
 
