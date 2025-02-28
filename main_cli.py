@@ -4,9 +4,9 @@ import uuid
 from datetime import datetime
 import logging
 from logging.handlers import RotatingFileHandler
-import step1_xtc_handling  
-import step2_pocketscsv    
-import step3_clustering_conf_creator  
+import extract_predict  
+import process_predicted    
+import cluster  
 
 def setup_logging(log_file):
     """
@@ -106,7 +106,7 @@ def extract_to_pdb(args, config):
     logger.info(f"Extracting frames from XTC file: {xtc_file}")
 
     # Convert XTC to PDB
-    pdb_files = step1_xtc_handling.xtc_to_pdb(
+    pdb_files = extract_predict.xtc_to_pdb(
         xtc_file, 
         topology_file,
         stride, 
@@ -117,7 +117,7 @@ def extract_to_pdb(args, config):
     # Write PDB list to a file
     logger.info("Writing PDB list file")
     pdb_list_file = os.path.join(outfolder, 'pdb_list.ds')
-    step1_xtc_handling.write_pdb_list(outfolder, pdb_list_file, config)
+    extract_predict.write_pdb_list(outfolder, pdb_list_file, config)
 
 def detect_pockets(args, config):
     """Detect pockets on PDB files in input folder using p2rank."""
@@ -128,7 +128,7 @@ def detect_pockets(args, config):
     pdb_list_file = os.path.join(infolder,'pdb_list.ds')
 
     # Run P2Rank on the PDB list
-    step1_xtc_handling.run_p2rank(
+    extract_predict.run_p2rank(
         pdb_list_file, 
         outfolder,
         numthreads,
@@ -137,7 +137,7 @@ def detect_pockets(args, config):
 
     # Merge results to CSV
     logger.info("Merging pocket data to CSV")
-    step2_pocketscsv.merge_to_csv(outfolder, pdb_list_file, config)
+    process_predicted.merge_to_csv(outfolder, pdb_list_file, config)
 
 def cluster_pockets(args, config):
     """Identifies representative pockets via clustering."""
@@ -147,7 +147,7 @@ def cluster_pockets(args, config):
     depth = args.depth
     min_prob = args.min_prob
 
-    step3_clustering_conf_creator.cluster_pockets(infolder, outfolder, method, depth, min_prob, config)
+    cluster.cluster_pockets(infolder, outfolder, method, depth, min_prob, config)
 
 def main():
     # Initialize argument parser
