@@ -51,7 +51,7 @@ def get_config(output_dir):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S") 
     job_id = f"{timestamp}_{str(uuid.uuid4())[:4]}"
 
-    logger = setup_logging(os.path.join(output_dir,f"log_{timestamp}_{job_id}"))
+    logger = setup_logging(os.path.join(output_dir,f"log_{job_id}.log"))
     
     config = {'logger': logger}
 
