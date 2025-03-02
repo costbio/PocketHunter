@@ -44,20 +44,20 @@ For flexibility, the full pipeline can be run all at once, or by running the ste
 The whole pipeline can be run with a single command as follows:
 
 ```bash
-python main_cli.py full_pipeline --xtc path/to/your.xtc --topology path/to/your_topology.pdb --numthreads 4 --outfolder path/to/output_dir --min_prob 0.7 --stride 10 
+python pockethunter.py full_pipeline --xtc path/to/your.xtc --topology path/to/your_topology.pdb --numthreads 4 --outfolder path/to/output_dir --min_prob 0.7 --stride 10 
 ```
 
 ### Extract PDBs 
 
 ```bash
-python main_cli.py extract_pdbs --xtc path/to/your.xtc --topology path/to/your_topology.pdb --outfolder path/to/output_dir --stride 10
+python pockethunter.py extract_pdbs --xtc path/to/your.xtc --topology path/to/your_topology.pdb --outfolder path/to/output_dir --stride 10
 ```
 ### Predict pockets 
 
 **--infolder** argument below should be the output folder from the **extract_pdbs** subcommand.
 
 ```bash
-python main_cli.py predict_pockets --infolder path/to/input_dir --output path/to/output_dir --numthreads 4
+python pockethunter.py predict_pockets --infolder path/to/input_dir --output path/to/output_dir --numthreads 4
 ```
 
 ### Cluster pockets 
@@ -65,7 +65,7 @@ python main_cli.py predict_pockets --infolder path/to/input_dir --output path/to
 **--infolder** argument below should be the output folder from the **predict_pockets** subcommand.
 
 ```bash
-python main_cli.py cluster_pockets --infolder path/to/input_dir --outfolder path/to/output_dir --method DBSCAN --min_prob 0.7
+python pockethunter.py cluster_pockets --infolder path/to/input_dir --outfolder path/to/output_dir --method DBSCAN --min_prob 0.7
 ```
 
 ## License
