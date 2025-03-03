@@ -54,7 +54,7 @@ def run_p2rank(pdb_list_file, output_dir, numthreads, novis, config):
         logger.info(f"Starting P2Rank with {numthreads} threads")
         dir_path = os.path.dirname(os.path.realpath(__file__))
         command = f'{dir_path}/tools/p2rank/prank predict {pdb_list_file} -o {output_dir} -threads {numthreads}'
-        print('novis before prank: ', novis)
+        
         if novis == True:
             command += ' -visualizations 0'
         logger.info(f"Executing command: {command}")

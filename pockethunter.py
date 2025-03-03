@@ -13,7 +13,7 @@ def setup_logging(log_file):
     Configure and return a logger that writes to both console and file.
     Implements rotating file handler and timestamped log file names.
     """
-    logger = logging.getLogger("main_logger")
+    logger = logging.getLogger("pockethunterq")
     logger.setLevel(logging.DEBUG)
 
     # Configure file handler with rotating capabilities
@@ -128,7 +128,6 @@ def detect_pockets(args, config):
     pdb_list_file = os.path.join(infolder,'pdb_list.ds')
     novis = args.novis
 
-    print(novis)
     # Run P2Rank on the PDB list
     extract_predict.run_p2rank(pdb_list_file, outfolder, numthreads, novis, config)
 
