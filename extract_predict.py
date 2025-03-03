@@ -47,14 +47,17 @@ def write_pdb_list(pdb_dir, output_file, config):
         logger.error(f"Error during PDB list creation: {str(e)}")
         raise
 
-def run_p2rank(pdb_list_file, output_dir, numthreads, config):
+def run_p2rank(pdb_list_file, output_dir, numthreads, novis, config):
     """Run P2Rank with the specified list of PDB files."""
     try:
         logger = config['logger']
         logger.info(f"Starting P2Rank with {numthreads} threads")
         dir_path = os.path.dirname(os.path.realpath(__file__))
         command = f'{dir_path}/tools/p2rank/prank predict {pdb_list_file} -o {output_dir} -threads {numthreads}'
-        logger.debug(f"Executing command: {command}")
+        print('novis before prank: ', novis)
+        if novis == True:
+            command += ' -visualizations 0'
+        logger.info(f"Executing command: {command}")
         
         # Redirect stdout and stderr to DEVNULL to suppress output
         subprocess.call(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
