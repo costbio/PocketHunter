@@ -2,6 +2,8 @@ import os
 import subprocess
 import glob
 import mdtraj as md
+import tarfile
+import shutil
 
 def xtc_to_pdb(xtc_file, topology, stride, outfolder, config):
     """Extract frames from XTC file to a series of PDB files."""
@@ -47,13 +49,28 @@ def write_pdb_list(pdb_dir, output_file, config):
         logger.error(f"Error during PDB list creation: {str(e)}")
         raise
 
-def run_p2rank(pdb_list_file, output_dir, numthreads, novis, config):
+def compress_folder(infolder, output_filename, config):
+    logger = config['logger']
+    logger.info(f"Compressing folder: {infolder} to {output_filename}")
+    with tarfile.open(output_filename, "w:gz") as tar:
+        tar.add(infolder, arcname=os.path.basename(infolder))
+
+    # Delete infolder
+    logger.info(f"Deleting folder: {infolder}")
+    shutil.rmtree(infolder)
+    logger.info(f"Compression completed successfully.")
+
+def run_p2rank(pdb_list_file, output_dir, numthreads, novis, compress, config):
     """Run P2Rank with the specified list of PDB files."""
     try:
         logger = config['logger']
         logger.info(f"Starting P2Rank with {numthreads} threads")
         dir_path = os.path.dirname(os.path.realpath(__file__))
-        command = f'{dir_path}/tools/p2rank/prank predict {pdb_list_file} -o {output_dir} -threads {numthreads}'
+        p2rank_output_dir = os.path.join(output_dir, 'p2rank_output')
+        if not os.path.exists(p2rank_output_dir):
+            os.makedirs(p2rank_output_dir)
+
+        command = f'{dir_path}/tools/p2rank/prank predict {pdb_list_file} -o {p2rank_output_dir} -threads {numthreads}'
         
         if novis == True:
             command += ' -visualizations 0'
@@ -62,7 +79,12 @@ def run_p2rank(pdb_list_file, output_dir, numthreads, novis, config):
         # Redirect stdout and stderr to DEVNULL to suppress output
         subprocess.call(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         logger.info(f"P2Rank completed successfully. Output written to {output_dir}")
-        return output_dir
+
+        if compress:
+            compress_folder(p2rank_output_dir, f"{p2rank_output_dir}.tar.gz", config)
+            return f"{p2rank_output_dir}.tar.gz"
+        else:
+            return output_dir
         
     except Exception as e:
         logger.error(f"Error during P2Rank execution: {str(e)}")
