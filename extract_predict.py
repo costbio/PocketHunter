@@ -5,15 +5,14 @@ import mdtraj as md
 import tarfile
 import shutil
 
-def xtc_to_pdb(xtc_file, topology, stride, outfolder, config):
+def xtc_to_pdb(xtc_file, topology, stride, outfolder, overwrite, config):
     """Extract frames from XTC file to a series of PDB files."""
     try:
         logger = config['logger']
         logger.info(f"Starting XTC to PDB extraction for {xtc_file}")
         traj = md.load_xtc(xtc_file, topology, stride=stride)
 
-        if not os.path.exists(outfolder):
-            os.makedirs(outfolder)
+        os.makedirs(outfolder, exist_ok=overwrite)
             
         for i, frame in enumerate(traj):
             real_frame_number = (i+1)*stride
@@ -60,15 +59,14 @@ def compress_folder(infolder, output_filename, config):
     shutil.rmtree(infolder)
     logger.info(f"Compression completed successfully.")
 
-def run_p2rank(pdb_list_file, output_dir, numthreads, novis, compress, config):
+def run_p2rank(pdb_list_file, output_dir, numthreads, novis, compress, overwrite, config):
     """Run P2Rank with the specified list of PDB files."""
     try:
         logger = config['logger']
         logger.info(f"Starting P2Rank with {numthreads} threads")
         dir_path = os.path.dirname(os.path.realpath(__file__))
         p2rank_output_dir = os.path.join(output_dir, 'p2rank_output')
-        if not os.path.exists(p2rank_output_dir):
-            os.makedirs(p2rank_output_dir)
+        os.makedirs(p2rank_output_dir, exist_ok=overwrite)
 
         command = f'{dir_path}/tools/p2rank/prank predict {pdb_list_file} -o {p2rank_output_dir} -threads {numthreads}'
         
