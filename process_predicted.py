@@ -1,11 +1,11 @@
 import os
 import csv
 import re
-
+import glob
 
 def extract_frame_number(filename):
-    """Extract frame number from filenames like '2XIR_traj_1.pdb_predictions.csv'."""
-    match = re.search(r'(\d+)(?=\.[^.]+$)', filename)
+    """Extracts the number before '.pdb' and after '_' from a filename."""
+    match = re.search(r'_(\d+)\.pdb', filename)
 
     if match:
         return match.group(1)
@@ -18,21 +18,10 @@ def load_pdb_list(pdb_list_file):
         pdb_files = [line.strip() for line in f.readlines()]
     return pdb_files
 
-def merge_to_csv(outfolder, pdb_file_list, config):
-    """
-    Writes the pocket predictions data into a CSV file.
-    
-    Args:
-    - processed_dir (str): Directory where processed files are stored.
-    - pdb_list (list): List of PDB file paths.
-    
-    Returns:
-    - None
-    """
+def merge_to_csv(outfolder, config):
 
     logger = config['logger']
-    # Load the pdb list from the .ds file
-    pdb_list = load_pdb_list(pdb_file_list)
+
     # Define the output CSV filename
     csv_filename = os.path.join(outfolder, "pockets.csv")
     
@@ -47,22 +36,22 @@ def merge_to_csv(outfolder, pdb_file_list, config):
         # Write header
         csvwriter.writerow(["File name", 'Frame', "pocket_index", "probability", "residues"])
 
-        # Iterate through PDB files
-        for pdb_file in pdb_list:
-            #print(f"pdb file:{pdb_file}")
-            # Define paths for prediction and residues files
-            predictions_file = os.path.join(outfolder, os.path.basename(pdb_file).replace('.pdb', '.pdb_predictions.csv'))
-            residues_file = os.path.join(outfolder, os.path.basename(pdb_file).replace('.pdb', '.pdb_residues.csv'))
-            #print(f"predictions:{predictions_file} and residues:{residues_file}")
+        # Get a list of all prediction files in the output folder.
+        p2rank_output_folder = os.path.join(outfolder, 'p2rank_output')
+        prediction_list = glob.glob(p2rank_output_folder+'/*.pdb_predictions.csv')
 
+        # Iterate through PDB files
+        for predictions_file in prediction_list:
+            
             # Skip if predictions file doesn't exist
             if not os.path.exists(predictions_file):
+                logger.info(f"Predictions file {predictions_file} not found. Skipping.")
                 continue
 
             # Extract the frame number from the PDB file name
-            frame_number = extract_frame_number(os.path.basename(pdb_file))
+            frame_number = extract_frame_number(os.path.basename(predictions_file))
             if not frame_number:
-                logger.info(f"Frame number not found for {pdb_file}. Skipping.")
+                logger.info(f"Frame number not found for {predictions_file}. Skipping.")
                 continue
 
             # Open predictions CSV file
@@ -74,7 +63,7 @@ def merge_to_csv(outfolder, pdb_file_list, config):
 
                     if float(row[' probability']) > 0.5:
                         pocket_index = row['  rank']  # Pocket index
-                        full_name = os.path.basename(pdb_file)[:-4]  # Get the PDB file name as the File name
+                        full_name = os.path.basename(predictions_file)[:-4]  # Get the PDB file name as the File name
                         probability = row[' probability']
                         residues = row[' residue_ids']
 

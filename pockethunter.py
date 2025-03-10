@@ -5,7 +5,6 @@ from datetime import datetime
 import logging
 from logging.handlers import RotatingFileHandler
 import extract_predict  
-import process_predicted    
 import cluster
 
 def setup_logging(log_file):
@@ -128,10 +127,6 @@ def detect_pockets(args, config):
 
     # Run P2Rank on the PDB list
     extract_predict.run_p2rank(pdb_list_file, outfolder, numthreads, novis, compress, overwrite, config)
-
-    # Merge results to CSV
-    logger.info("Merging pocket data to CSV")
-    process_predicted.merge_to_csv(outfolder, pdb_list_file, config)
 
 def cluster_pockets(args, config):
     """Identifies representative pockets via clustering."""

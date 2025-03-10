@@ -4,6 +4,7 @@ import glob
 import mdtraj as md
 import tarfile
 import shutil
+import process_predicted
 
 def xtc_to_pdb(xtc_file, topology, stride, outfolder, overwrite, config):
     """Extract frames from XTC file to a series of PDB files."""
@@ -59,6 +60,42 @@ def compress_folder(infolder, output_filename, config):
     shutil.rmtree(infolder)
     logger.info(f"Compression completed successfully.")
 
+def extract_folder(archive_path, destination_path, config):
+    """
+    Extracts a folder from a tar.gz archive to a specified destination.
+
+    Args:
+        archive_path (str): The path to the tar.gz archive.
+        destination_path (str): The path to the destination directory.
+        config (dict): A configuration dictionary containing a logger.
+    """
+    logger = config['logger']
+    logger.info(f"Extracting folder from: {archive_path} to {destination_path}")
+
+    try:
+        with tarfile.open(archive_path, "r:gz") as tar:
+            # Get the top-level folder name from the archive.
+            top_level_folder = tar.getnames()[0].split('/')[0]
+
+            # Extract the entire archive to the destination.
+            tar.extractall(path=destination_path)
+
+            # Move the extracted top-level folder to the destination.
+            extracted_folder_path = os.path.join(destination_path, top_level_folder)
+            final_destination = os.path.join(destination_path, os.path.basename(top_level_folder))
+
+            if extracted_folder_path != final_destination: # only move if they are different.
+              shutil.move(extracted_folder_path, final_destination)
+
+        logger.info(f"Extraction completed successfully to: {final_destination}")
+
+    except FileNotFoundError:
+        logger.error(f"Error: Archive not found at {archive_path}")
+    except tarfile.ReadError:
+        logger.error(f"Error: Invalid tar.gz archive at {archive_path}")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+
 def run_p2rank(pdb_list_file, output_dir, numthreads, novis, compress, overwrite, config):
     """Run P2Rank with the specified list of PDB files."""
     try:
@@ -75,8 +112,14 @@ def run_p2rank(pdb_list_file, output_dir, numthreads, novis, compress, overwrite
         logger.info(f"Executing command: {command}")
         
         # Redirect stdout and stderr to DEVNULL to suppress output
+
         subprocess.call(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                
         logger.info(f"P2Rank completed successfully. Output written to {output_dir}")
+        
+        # Compiling results into a CSV
+        logger.info("Compiling pocket data into a CSV")
+        process_predicted.merge_to_csv(output_dir, config)
 
         if compress:
             compress_folder(p2rank_output_dir, f"{p2rank_output_dir}.tar.gz", config)
