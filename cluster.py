@@ -19,7 +19,7 @@ from sklearn.metrics import silhouette_score
 from scipy.spatial.distance import hamming
 from collections import Counter
 
-def optimized_dbscan(df, cols_2cluster, outfolder, logger):
+def optimized_dbscan(df, cols_2cluster, logger):
     """
     Performs optimized DBSCAN on a dataframe to maximize the silhouette coefficient.
 
@@ -92,7 +92,6 @@ def optimized_dbscan(df, cols_2cluster, outfolder, logger):
 
             optim_count += 1
 
-
     return best_model, best_silhouette, df
 
 # Function to get medoids
@@ -142,7 +141,7 @@ def cluster_pockets(infolder, outfolder, method, depth, min_prob, config):
     # Apply the function and create the binary DataFrame
     logger.info('Binarizing the pocket data frame.')
     binary_df = data['residues'].apply(lambda res_str: sequence_to_binary(res_str, unique_residues))
-    binary_df.to_csv(os.path.join(outfolder,'binary_df.csv')) # For debugging.
+    #binary_df.to_csv(os.path.join(outfolder,'binary_df.csv')) # For debugging.
 
     # Concatenate with the original DataFrame (optional)
     data = pd.concat([data, binary_df], axis=1)
@@ -159,7 +158,7 @@ def cluster_pockets(infolder, outfolder, method, depth, min_prob, config):
         data_2cluster = data[['Frame']+list(unique_residues)].copy()
         #data_2cluster.to_csv(os.path.join(outfolder,'data_2cluster.csv')) # For debugging.
 
-        best_model, best_silhouette, df = optimized_dbscan(data_2cluster, unique_residues, outfolder, logger)
+        best_model, best_silhouette, __ = optimized_dbscan(data_2cluster, unique_residues, logger)
 
         logger.info(f"Best Silhouette Score: {best_silhouette}")
 
