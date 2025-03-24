@@ -109,16 +109,14 @@ def get_cluster_medoids(data, labels, unique_residues):
             medoid_indices.append(cluster_points.index[medoid_index])
     return data.loc[medoid_indices]
 
-def cluster_pockets(infolder, outfolder, method, depth, min_prob, config):
+def cluster_pockets(infile, outfolder, method, depth, min_prob, config):
 
     logger = config['logger']
 
     if not os.path.exists(outfolder):
         os.makedirs(outfolder)
-
-    csv_file_dir = f"{infolder}/pockets.csv"
     
-    data = pd.read_csv(csv_file_dir)
+    data = pd.read_csv(infile)
 
     # Filter by min_prob
     data = data[data['probability'] >= min_prob]
