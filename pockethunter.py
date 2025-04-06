@@ -136,7 +136,15 @@ def cluster_pockets(args, config):
     depth = args.depth
     min_prob = args.min_prob
 
-    cluster.cluster_pockets(infile, outfolder, method, depth, min_prob, config)
+    cluster.cluster_pockets(
+        infile=args.infile,
+        outfolder=args.outfolder,
+        method=args.method,
+        depth=args.depth,
+        min_prob=args.min_prob,
+        config=config,
+        hierarchical=args.hierarchical
+    )
 
 def main():
     # Initialize argument parser
@@ -191,6 +199,7 @@ def main():
                                 help='Clustering depth parameter for identification of representatives pockets from '
                                 'hierarchical clustering.')
     parser_cluster.add_argument("--min_prob",type=float, default=0.5, help="Minimum ligand-binding probability for clustering (default: 0.5).")
+    parser_cluster.add_argument('--hierarchical', action='store_true', help='Perform hierarchical clustering within DBSCAN clusters.')
 
     args = parser.parse_args()
 

@@ -18,6 +18,7 @@ from sklearn.cluster import DBSCAN
 from sklearn.metrics import silhouette_score
 from scipy.spatial.distance import hamming
 from collections import Counter
+from scipy.cluster.hierarchy import linkage, fcluster, dendrogram
 
 def optimized_dbscan(df, cols_2cluster, logger):
     """
@@ -109,7 +110,23 @@ def get_cluster_medoids(data, labels, unique_residues):
             medoid_indices.append(cluster_points.index[medoid_index])
     return data.loc[medoid_indices]
 
-def cluster_pockets(infile, outfolder, method, depth, min_prob, config):
+def hierarchical_clustering(data, method='ward', threshold=1.0):
+    """
+    Perform hierarchical clustering on the given data.
+
+    Args:
+        data: DataFrame containing the data to cluster.
+        method: Linkage method to use (default: 'ward').
+        threshold: Distance threshold for forming clusters.
+
+    Returns:
+        A list of cluster labels.
+    """
+    linkage_matrix = linkage(data, method=method)
+    cluster_labels = fcluster(linkage_matrix, t=threshold, criterion='distance')
+    return cluster_labels
+
+def cluster_pockets(infile, outfolder, method, depth, min_prob, config, hierarchical=False):
 
     logger = config['logger']
 
@@ -165,6 +182,21 @@ def cluster_pockets(infile, outfolder, method, depth, min_prob, config):
             labels = best_model.labels_
             data['cluster'] = labels # Add cluster labels back to the original dataframe
             data.to_csv(os.path.join(outfolder,'pockets_clustered.csv'))
+            cluster_members = {lbl: data[data['cluster'] == lbl] for lbl in np.unique(labels) if lbl != -1}
+
+            if hierarchical:
+                logger.info('Performing hierarchical clustering within DBSCAN clusters.')
+                for cluster_label, cluster_data in cluster_members.items():
+                    logger.info(f'Processing DBSCAN cluster {cluster_label} with {len(cluster_data)} members.')
+                    hierarchical_labels = hierarchical_clustering(
+                        cluster_data[unique_residues], method='ward', threshold=1.0
+                    )
+                    cluster_data['hierarchical_cluster'] = hierarchical_labels
+                    cluster_data.to_csv(
+                        os.path.join(outfolder, f'cluster_{cluster_label}_hierarchical.csv')
+                    )
+                logger.info('Hierarchical clustering complete.')
+
             for lbl in np.unique(labels):
                 if lbl == -1:
                     percentage_noise = (labels == -1).sum() / len(labels) * 100
