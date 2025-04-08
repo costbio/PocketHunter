@@ -191,7 +191,9 @@ def cluster_pockets(infile, outfolder, method, depth, min_prob, config, hierarch
                     hierarchical_labels = hierarchical_clustering(
                         cluster_data[unique_residues], method='ward', threshold=1.0
                     )
-                    cluster_data['hierarchical_cluster'] = hierarchical_labels
+                    
+                    cluster_data = cluster_data.copy() #Create a copy to avoid SettingWithCopyWarning (which we don't want to see)
+                    cluster_data.loc[:, 'hierarchical_cluster'] = hierarchical_labels
                     cluster_data.to_csv(
                         os.path.join(outfolder, f'cluster_{cluster_label}_hierarchical.csv')
                     )
