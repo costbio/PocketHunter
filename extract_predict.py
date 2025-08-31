@@ -12,8 +12,6 @@ def xtc_to_pdb(xtc_file, topology, stride, outfolder, overwrite, config):
         logger = config['logger']
         logger.info(f"Starting XTC to PDB extraction for {xtc_file}")
         traj = md.load_xtc(xtc_file, topology, stride=stride)
-
-        os.makedirs(outfolder, exist_ok=overwrite)
             
         for i, frame in enumerate(traj):
             real_frame_number = (i+1)*stride

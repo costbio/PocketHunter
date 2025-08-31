@@ -42,10 +42,10 @@ def setup_logging(log_file):
 
     return logger
 
-def get_config(output_dir):
+def get_config(output_dir, overwrite):
     """Generate configuration based on the specified output directory."""
 
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=overwrite)
 
     # Timestamp for job ID
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S") 
@@ -213,7 +213,7 @@ def main():
         return  # Exit without running anything
     
     # Load configuration with user-specified output directory
-    config = get_config(args.outfolder)
+    config = get_config(args.outfolder, args.overwrite)
 
     # Execute commands
     if args.command == "full_pipeline":
