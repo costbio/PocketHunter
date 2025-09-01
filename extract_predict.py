@@ -12,13 +12,27 @@ def xtc_to_pdb(xtc_file, topology, stride, outfolder, overwrite, config):
         logger = config['logger']
         logger.info(f"Starting XTC to PDB extraction for {xtc_file}")
         traj = md.load_xtc(xtc_file, topology, stride=stride)
-            
+        
+        total_frames = len(traj)
+        logger.info(f"Total frames to extract: {total_frames}")
+        
+        # Calculate progress reporting intervals (every 10%)
+        progress_interval = max(1, total_frames // 10)
+        
+        pdb_files = []
         for i, frame in enumerate(traj):
             real_frame_number = (i+1)*stride
             pdb_file = os.path.join(outfolder, f"{os.path.splitext(os.path.basename(xtc_file))[0]}_{real_frame_number}.pdb")
             frame.save_pdb(pdb_file)
-        return [os.path.join(outfolder, f"{os.path.splitext(os.path.basename(xtc_file))[0]}_{(i+1)*stride}.pdb") for i in range(len(traj))]
+            pdb_files.append(pdb_file)
+            
+            # Log progress every 10%
+            if (i + 1) % progress_interval == 0 or (i + 1) == total_frames:
+                progress_percent = ((i + 1) / total_frames) * 100
+                logger.info(f"Extraction progress: {i + 1}/{total_frames} frames ({progress_percent:.1f}%)")
+        
         logger.info(f"Extraction completed successfully. Saved {len(pdb_files)} PDB files.")
+        return pdb_files
     except Exception as e:
         logger.error(f"Error during XTC to PDB extraction: {str(e)}")
         raise

@@ -205,6 +205,7 @@ def main():
                                 'hierarchical clustering.')
     parser_cluster.add_argument("--min_prob",type=float, default=0.5, help="Minimum ligand-binding probability for clustering (default: 0.5).")
     parser_cluster.add_argument('--hierarchical', action='store_true', help='Perform hierarchical clustering within DBSCAN clusters.')
+    parser_cluster.add_argument('--overwrite', action='store_true', help='Overwrite existing output directory.')
 
     args = parser.parse_args()
 
