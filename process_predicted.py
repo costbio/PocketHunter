@@ -58,15 +58,11 @@ def merge_to_csv(outfolder, config):
             with open(predictions_file, 'r') as pred_file:
                 reader = csv.DictReader(pred_file)
                 for row in reader:
-                    # Check if probability is higher than 0.5
-                    # TO-DO: THIS CAN BE MADE ADJUSTABLE BY THE USER!
+                    pocket_index = row['  rank']  # Pocket index
+                    full_name = os.path.basename(predictions_file)[:-4]  # Get the PDB file name as the File name
+                    probability = row[' probability']
+                    residues = row[' residue_ids']
 
-                    if float(row[' probability']) > 0.5:
-                        pocket_index = row['  rank']  # Pocket index
-                        full_name = os.path.basename(predictions_file)[:-4]  # Get the PDB file name as the File name
-                        probability = row[' probability']
-                        residues = row[' residue_ids']
-
-                        # Write data to the CSV file
-                        csvwriter.writerow([full_name, frame_number, pocket_index, probability, residues])
+                    # Write data to the CSV file
+                    csvwriter.writerow([full_name, frame_number, pocket_index, probability, residues])
     return csv_filename
