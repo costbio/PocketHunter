@@ -6,6 +6,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import extract_predict  
 import cluster
+import plot
 
 def setup_logging(log_file):
     """
@@ -149,6 +150,14 @@ def cluster_pockets(args, config):
         hierarchical=args.hierarchical
     )
 
+def plot_clustermap(args):
+    """Generate cluster map visualization from clustering results."""
+    infolder = os.path.abspath(args.infolder)
+    
+    plot.plot_clustermap(
+        infolder=infolder
+    )
+
 def main():
     # Initialize argument parser
     parser = argparse.ArgumentParser(
@@ -207,6 +216,10 @@ def main():
     parser_cluster.add_argument('--hierarchical', action='store_true', help='Perform hierarchical clustering within DBSCAN clusters.')
     parser_cluster.add_argument('--overwrite', action='store_true', help='Overwrite existing output directory.')
 
+    # Plot cluster map
+    parser_plot = subparsers.add_parser("plot_clustermap", help="Generate cluster map visualization from clustering results.")
+    parser_plot.add_argument("--infolder", type=str, help='Input folder containing clustering results (output from cluster_pockets).')
+
     args = parser.parse_args()
 
     if args.command is None:
@@ -214,7 +227,8 @@ def main():
         return  # Exit without running anything
     
     # Load configuration with user-specified output directory
-    config = get_config(args.outfolder, args.overwrite)
+    if not args.command == "plot_clustermap":
+        config = get_config(args.outfolder, args.overwrite)
 
     # Execute commands
     if args.command == "full_pipeline":
@@ -225,6 +239,8 @@ def main():
         detect_pockets(args, config)
     elif args.command == "cluster_pockets":
         cluster_pockets(args, config)
+    elif args.command == "plot_clustermap":
+        plot_clustermap(args)
     else:
         parser.print_help()
 
