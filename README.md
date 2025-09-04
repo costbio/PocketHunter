@@ -74,7 +74,7 @@ python pockethunter.py cluster_pockets --infolder path/to/input_dir --outfolder 
 After clustering, you can visualize the residue composition of each pocket cluster using `plot.py`:
 
 ```bash
-python plot.py /path/to/clustered/results_folder
+python pockethunter.py plot_clustermap /path/to/clustered/results_folder
 ```
 
 This will open an interactive heatmap showing residue composition per cluster. Hover over points to see details.
