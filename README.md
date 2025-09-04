@@ -37,6 +37,7 @@ The tools performs the analysis in several sequential steps.
 * Predict pockets
 * Cluster pockets
 
+
 For flexibility, the full pipeline can be run all at once, or by running the steps individually, then feeding results from one step to the next one.
 
 ### Full pipeline
@@ -67,6 +68,16 @@ python pockethunter.py predict_pockets --infolder path/to/input_dir --output pat
 ```bash
 python pockethunter.py cluster_pockets --infolder path/to/input_dir --outfolder path/to/output_dir --method DBSCAN --min_prob 0.7
 ```
+
+### Visualize clustered pockets
+
+After clustering, you can visualize the residue composition of each pocket cluster using `plot.py`:
+
+```bash
+python plot.py /path/to/clustered/results_folder
+```
+
+This will open an interactive heatmap showing residue composition per cluster. Hover over points to see details.
 
 ## License
 
