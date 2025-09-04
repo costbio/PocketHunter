@@ -6,7 +6,7 @@ import numpy as np
 
 def plot_clustermap(infolder, config=None):
 
-    OUTPUT_POCKETS_CSV = os.path.join(infolder, "pockets_clustered.csv")
+    OUTPUT_POCKETS_CSV = os.path.join(infolder, "pocket_clusters/pockets_clustered.csv")
 
     df_pockets_clustered = pd.read_csv(OUTPUT_POCKETS_CSV)
     
