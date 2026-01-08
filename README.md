@@ -51,19 +51,19 @@ python pockethunter.py full_pipeline --xtc path/to/your.xtc --topology path/to/y
 ### Extract PDBs 
 
 ```bash
-python pockethunter.py extract_pdbs --xtc path/to/your.xtc --topology path/to/your_topology.pdb --outfolder path/to/output_dir --stride 10
+python pockethunter.py extract_to_pdb --xtc path/to/your.xtc --topology path/to/your_topology.pdb --outfolder path/to/output_dir --stride 10
 ```
 ### Predict pockets 
 
-**--infolder** argument below should be the output folder from the **extract_pdbs** subcommand.
+**--infolder** argument below should be the output folder from the **extract_to_pdb** subcommand.
 
 ```bash
-python pockethunter.py predict_pockets --infolder path/to/input_dir --output path/to/output_dir --numthreads 4
+python pockethunter.py detect_pockets --infolder path/to/input_dir --outfolder path/to/output_dir --numthreads 4
 ```
 
 ### Cluster pockets 
 
-**--infolder** argument below should be the output folder from the **predict_pockets** subcommand.
+**--infolder** argument below should be the output folder from the **detect_pockets** subcommand.
 
 ```bash
 python pockethunter.py cluster_pockets --infolder path/to/input_dir --outfolder path/to/output_dir --method DBSCAN --min_prob 0.7
@@ -71,10 +71,10 @@ python pockethunter.py cluster_pockets --infolder path/to/input_dir --outfolder 
 
 ### Visualize clustered pockets
 
-After clustering, you can visualize the residue composition of each pocket cluster using `plot.py`:
+After clustering, you can visualize the residue composition of each pocket cluster using `plot_clustermap`:
 
 ```bash
-python pockethunter.py plot_clustermap /path/to/clustered/results_folder
+python pockethunter.py plot_clustermap --infolder /path/to/clustered/results_folder
 ```
 
 This will open an interactive heatmap showing residue composition per cluster. Hover over points to see details.
