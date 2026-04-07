@@ -107,7 +107,26 @@ def get_ligand_features(mol) -> dict:
 
 
 def score_complementarity(pocket_features: dict, ligand_features: dict) -> float:
-    p = np.array([pocket_features[k] for k in FEATURE_KEYS], dtype=float)
+    """
+    Compute pharmacophoric complementarity between a pocket and a ligand.
+
+    H-bond and charge features are cross-mapped (pocket donor pairs with ligand
+    acceptor, pocket acceptor pairs with ligand donor, etc.). Hydrophobic and
+    aromatic features are self-complementary (like pairs with like).
+
+    Returns a float in [0, 1]: 1 means perfect complementarity, 0 means no
+    complementary features. Returns 0.0 if either vector is all zeros.
+    """
+    # Remap pocket features to their complementary counterparts
+    complementary_pocket = {
+        'donor':       pocket_features['acceptor'],    # pocket acceptor pairs with ligand donor
+        'acceptor':    pocket_features['donor'],       # pocket donor pairs with ligand acceptor
+        'hydrophobic': pocket_features['hydrophobic'], # self-complementary
+        'aromatic':    pocket_features['aromatic'],    # self-complementary (pi-stacking)
+        'positive':    pocket_features['negative'],    # pocket negative pairs with ligand positive
+        'negative':    pocket_features['positive'],    # pocket positive pairs with ligand negative
+    }
+    p = np.array([complementary_pocket[k] for k in FEATURE_KEYS], dtype=float)
     l = np.array([ligand_features[k] for k in FEATURE_KEYS], dtype=float)
     norm_p = np.linalg.norm(p)
     norm_l = np.linalg.norm(l)

@@ -75,17 +75,30 @@ def test_get_ligand_features_none_mol():
     features = get_ligand_features(None)
     assert all(v == 0 for v in features.values())
 
-def test_score_complementarity_identical_vectors():
-    pocket = {'donor': 2, 'acceptor': 0, 'hydrophobic': 0, 'aromatic': 0, 'positive': 0, 'negative': 0}
-    ligand = {'donor': 2, 'acceptor': 0, 'hydrophobic': 0, 'aromatic': 0, 'positive': 0, 'negative': 0}
+def test_score_complementarity_hydrophobic_self_complementary():
+    # Hydrophobic is self-complementary: hydrophobic pocket scores high with hydrophobic ligand
+    pocket = {'donor': 0, 'acceptor': 0, 'hydrophobic': 3, 'aromatic': 0, 'positive': 0, 'negative': 0}
+    ligand = {'donor': 0, 'acceptor': 0, 'hydrophobic': 2, 'aromatic': 0, 'positive': 0, 'negative': 0}
     score = score_complementarity(pocket, ligand)
     assert score == pytest.approx(1.0)
 
-def test_score_complementarity_orthogonal_vectors():
-    pocket = {'donor': 1, 'acceptor': 0, 'hydrophobic': 0, 'aromatic': 0, 'positive': 0, 'negative': 0}
-    ligand = {'donor': 0, 'acceptor': 1, 'hydrophobic': 0, 'aromatic': 0, 'positive': 0, 'negative': 0}
-    score = score_complementarity(pocket, ligand)
-    assert score == pytest.approx(0.0)
+def test_score_complementarity_hbond_cross_mapped():
+    # Pocket donor complements ligand acceptor (not donor)
+    pocket = {'donor': 2, 'acceptor': 0, 'hydrophobic': 0, 'aromatic': 0, 'positive': 0, 'negative': 0}
+    ligand_acceptor = {'donor': 0, 'acceptor': 2, 'hydrophobic': 0, 'aromatic': 0, 'positive': 0, 'negative': 0}
+    ligand_donor = {'donor': 2, 'acceptor': 0, 'hydrophobic': 0, 'aromatic': 0, 'positive': 0, 'negative': 0}
+    # Pocket donor should complement ligand acceptor
+    assert score_complementarity(pocket, ligand_acceptor) == pytest.approx(1.0)
+    # Pocket donor should NOT complement ligand donor (both donate — no pairing)
+    assert score_complementarity(pocket, ligand_donor) == pytest.approx(0.0)
+
+def test_score_complementarity_charge_cross_mapped():
+    # Pocket positive (e.g. Lys) complements ligand negative
+    pocket = {'donor': 0, 'acceptor': 0, 'hydrophobic': 0, 'aromatic': 0, 'positive': 2, 'negative': 0}
+    ligand_neg = {'donor': 0, 'acceptor': 0, 'hydrophobic': 0, 'aromatic': 0, 'positive': 0, 'negative': 2}
+    ligand_pos = {'donor': 0, 'acceptor': 0, 'hydrophobic': 0, 'aromatic': 0, 'positive': 2, 'negative': 0}
+    assert score_complementarity(pocket, ligand_neg) == pytest.approx(1.0)
+    assert score_complementarity(pocket, ligand_pos) == pytest.approx(0.0)
 
 def test_score_complementarity_zero_pocket():
     pocket = {k: 0 for k in FEATURE_KEYS}
