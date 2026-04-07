@@ -4,9 +4,10 @@ import uuid
 from datetime import datetime
 import logging
 from logging.handlers import RotatingFileHandler
-import extract_predict  
+import extract_predict
 import cluster
 import plot
+import discriminate
 
 def setup_logging(log_file):
     """
@@ -153,10 +154,23 @@ def cluster_pockets(args, config):
 def plot_clustermap(args):
     """Generate cluster map visualization from clustering results."""
     infolder = os.path.abspath(args.infolder)
-    
+
     plot.plot_clustermap(
         infolder=infolder
     )
+
+def discriminate_conformations(args, config):
+    """Rank cluster representatives by active/decoy discrimination."""
+    logger = config['logger']
+    logger.info("Starting discrimination analysis.")
+    df = discriminate.run_discrimination(
+        cluster_dir=os.path.abspath(args.cluster_dir),
+        actives_sdf=os.path.abspath(args.actives),
+        decoys_sdf=os.path.abspath(args.decoys),
+        outfolder=os.path.abspath(args.outfolder),
+    )
+    logger.info("Discrimination complete. Results saved to %s", args.outfolder)
+    logger.info("\n%s", df[['cluster_id', 'frame', 'roc_auc', 'ef1', 'ef5']].to_string(index=False))
 
 def main():
     # Initialize argument parser
@@ -220,6 +234,32 @@ def main():
     parser_plot = subparsers.add_parser("plot_clustermap", help="Generate cluster map visualization from clustering results.")
     parser_plot.add_argument("--infolder", type=str, help='Input folder containing clustering results (output from cluster_pockets).')
 
+    # Discrimination analysis
+    parser_disc = subparsers.add_parser(
+        "discriminate",
+        help="Rank cluster representatives by active/decoy pharmacophore discrimination."
+    )
+    parser_disc.add_argument(
+        "--cluster_dir", required=True,
+        help="Path to pocket_clusters output directory (contains cluster_representatives.csv)."
+    )
+    parser_disc.add_argument(
+        "--actives", required=True,
+        help="Path to actives SDF file (max 200 molecules)."
+    )
+    parser_disc.add_argument(
+        "--decoys", required=True,
+        help="Path to decoys SDF file (max 2000 molecules)."
+    )
+    parser_disc.add_argument(
+        "--outfolder", required=True,
+        help="Output folder for discrimination results."
+    )
+    parser_disc.add_argument(
+        "--overwrite", action='store_true',
+        help="Overwrite existing output directory."
+    )
+
     args = parser.parse_args()
 
     if args.command is None:
@@ -241,6 +281,8 @@ def main():
         cluster_pockets(args, config)
     elif args.command == "plot_clustermap":
         plot_clustermap(args)
+    elif args.command == "discriminate":
+        discriminate_conformations(args, config)
     else:
         parser.print_help()
 
