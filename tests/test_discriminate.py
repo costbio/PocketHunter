@@ -9,6 +9,7 @@ from discriminate import (
     get_ligand_features,
     score_complementarity,
     compute_discrimination_metrics,
+    run_discrimination,
     FEATURE_KEYS,
 )
 
@@ -123,3 +124,15 @@ def test_compute_metrics_ef1_perfect():
     scores_decoys = [0.0] * 90
     metrics = compute_discrimination_metrics(scores_actives, scores_decoys)
     assert metrics['ef1'] > 1.0
+
+def test_run_discrimination_missing_columns(tmp_path):
+    import pandas as pd
+    # CSV missing 'cluster' column
+    bad_csv = tmp_path / "cluster_representatives.csv"
+    pd.DataFrame({'residues': ['A_1_ALA'], 'Frame': [1]}).to_csv(bad_csv, index=False)
+    actives_sdf = tmp_path / "actives.sdf"
+    actives_sdf.write_text("")
+    decoys_sdf = tmp_path / "decoys.sdf"
+    decoys_sdf.write_text("")
+    with pytest.raises(ValueError, match="missing required columns"):
+        run_discrimination(str(tmp_path), str(actives_sdf), str(decoys_sdf), str(tmp_path / "out"))

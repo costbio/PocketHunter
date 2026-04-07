@@ -133,8 +133,13 @@ def run_discrimination(cluster_dir: str, actives_sdf: str, decoys_sdf: str,
         raise FileNotFoundError(f"cluster_representatives.csv not found in {cluster_dir}")
 
     df_reps = pd.read_csv(reps_csv)
-    if 'residues' not in df_reps.columns:
-        raise ValueError("cluster_representatives.csv must contain a 'residues' column")
+    required_cols = {'residues', 'cluster', 'Frame'}
+    missing_cols = required_cols - set(df_reps.columns)
+    if missing_cols:
+        raise ValueError(
+            f"cluster_representatives.csv is missing required columns: {missing_cols}. "
+            f"Found columns: {list(df_reps.columns)}"
+        )
 
     actives = _load_mols_from_sdf(actives_sdf)
     decoys = _load_mols_from_sdf(decoys_sdf)
