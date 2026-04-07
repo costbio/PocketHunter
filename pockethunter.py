@@ -168,6 +168,7 @@ def discriminate_conformations(args, config):
         actives_sdf=os.path.abspath(args.actives),
         decoys_sdf=os.path.abspath(args.decoys),
         outfolder=os.path.abspath(args.outfolder),
+        pdb_dir=os.path.abspath(args.pdb_dir) if args.pdb_dir else None,
     )
     logger.info("Discrimination complete. Results saved to %s", args.outfolder)
     logger.info("\n%s", df[['cluster_id', 'frame', 'roc_auc', 'ef1', 'ef5']].to_string(index=False))
@@ -254,6 +255,12 @@ def main():
     parser_disc.add_argument(
         "--outfolder", required=True,
         help="Output folder for discrimination results."
+    )
+    parser_disc.add_argument(
+        "--pdb_dir", type=str, default=None,
+        help="Directory containing representative PDB files (required when residue IDs "
+             "use CHAIN_RESNUM format, e.g. from p2rank). Typically the 'pdbs/' folder "
+             "from the extract step."
     )
     parser_disc.add_argument(
         "--overwrite", action='store_true',
