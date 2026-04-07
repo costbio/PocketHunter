@@ -50,6 +50,21 @@ def test_get_pocket_features_unknown_residue():
     features = get_pocket_features(['A_1_UNK'])
     assert all(v >= 0 for v in features.values())
 
+
+def test_build_resname_map_nonexistent_file():
+    from discriminate import build_resname_map
+    result = build_resname_map('/nonexistent/path/to.pdb')
+    assert result == {}
+
+
+def test_get_pocket_features_with_resname_map():
+    # Simulate the 'A_1019' format resolved via map
+    resname_map = {'A_1019': 'ARG', 'A_1020': 'ASP', 'A_1021': 'PHE'}
+    features = get_pocket_features(['A_1019', 'A_1020', 'A_1021'], resname_map=resname_map)
+    assert features['donor'] >= 1    # ARG is donor
+    assert features['acceptor'] >= 1 # ASP is acceptor
+    assert features['aromatic'] >= 1 # PHE is aromatic
+
 def test_get_ligand_features_returns_all_keys():
     from rdkit import Chem
     mol = Chem.MolFromSmiles('c1ccccc1')

@@ -14,6 +14,7 @@ import pandas as pd
 from sklearn.metrics import roc_auc_score
 from rdkit import Chem, RDConfig
 from rdkit.Chem import ChemicalFeatures
+from prody import parsePDB
 
 FEATURE_KEYS = ['donor', 'acceptor', 'hydrophobic', 'aromatic', 'positive', 'negative']
 
@@ -52,27 +53,77 @@ def _get_factory():
     return _factory_instance
 
 
-def _extract_resname(residue_id: str) -> str:
-    parts = residue_id.strip().split('_')
+def _extract_resname(residue_id: str, resname_map: dict = None) -> str:
+    """
+    Extract the 3-letter residue name from a p2rank residue ID.
+
+    Tries lookup in resname_map first (for 'CHAIN_RESNUM' format like 'A_1019'),
+    then falls back to parsing the ID string (for 'CHAIN_NUM_RESNAME' format like 'A_1_ALA').
+    """
+    rid = residue_id.strip()
+
+    # Try direct lookup in map (handles 'A_1019' format from p2rank)
+    if resname_map and rid in resname_map:
+        return resname_map[rid]
+
+    # Fall back to string parsing (handles 'A_1_ALA' format)
+    parts = rid.split('_')
     for part in reversed(parts):
         clean = part.strip().upper()
         if len(clean) == 3 and clean.isalpha():
             return clean
-    # Fallback: expected format is CHAIN_NUM_RESNAME (e.g. 'A_1_ALA')
-    alpha = ''.join(c for c in residue_id if c.isalpha())
+
+    # Last resort: first 3 alpha chars
+    alpha = ''.join(c for c in rid if c.isalpha())
     result = alpha[:3].upper() if len(alpha) >= 3 else ''
     if result:
         _logger.warning(
-            "Residue ID '%s' did not match expected CHAIN_NUM_RESNAME format; "
-            "extracted '%s' via fallback heuristic.", residue_id, result
+            "Residue ID '%s' did not match expected format; extracted '%s' via fallback heuristic.",
+            rid, result
         )
     return result
 
 
-def get_pocket_features(residue_ids: list) -> dict:
+def build_resname_map(pdb_path: str) -> dict:
+    """
+    Build a mapping from 'CHAIN_RESNUM' to 3-letter residue name by parsing a PDB file.
+
+    Uses prody to read the structure. Returns a dict like {'A_1019': 'ARG', 'A_1022': 'SER', ...}.
+    Returns an empty dict if the file cannot be parsed.
+    """
+    try:
+        structure = parsePDB(pdb_path, subset='ca', verbosity='none')
+        if structure is None:
+            _logger.warning("prody could not parse PDB file: %s", pdb_path)
+            return {}
+        resname_map = {}
+        for res in structure.iterResidues():
+            key = f"{res.getChid()}_{res.getResnum()}"
+            resname_map[key] = res.getResname()
+        return resname_map
+    except Exception as exc:
+        _logger.warning("Failed to build resname map from %s: %s", pdb_path, exc)
+        return {}
+
+
+def get_pocket_features(residue_ids: list, resname_map: dict = None) -> dict:
+    """
+    Compute pharmacophore feature counts for a pocket defined by residue IDs.
+
+    Args:
+        residue_ids: List of p2rank residue ID strings (e.g. ['A_1019', 'A_1022']
+                     or ['A_1_ALA', 'A_2_ARG']).
+        resname_map: Optional dict mapping 'CHAIN_RESNUM' to 3-letter residue name,
+                     built from the representative PDB via build_resname_map().
+                     Required when residue IDs use 'CHAIN_RESNUM' format without
+                     the residue name suffix.
+
+    Returns:
+        Dict with keys matching FEATURE_KEYS and integer counts.
+    """
     features = {k: 0 for k in FEATURE_KEYS}
     for rid in residue_ids:
-        resname = _extract_resname(rid)
+        resname = _extract_resname(rid, resname_map)
         if not resname:
             continue
         if resname in _DONOR_RESNAMES:
@@ -166,7 +217,7 @@ def _load_mols_from_sdf(sdf_path: str) -> list:
 
 
 def run_discrimination(cluster_dir: str, actives_sdf: str, decoys_sdf: str,
-                       outfolder: str) -> pd.DataFrame:
+                       outfolder: str, pdb_dir: str = None) -> pd.DataFrame:
     os.makedirs(outfolder, exist_ok=True)
 
     reps_csv = os.path.join(cluster_dir, 'cluster_representatives.csv')
@@ -201,7 +252,21 @@ def run_discrimination(cluster_dir: str, actives_sdf: str, decoys_sdf: str,
     rows = []
     for _, rep in df_reps.iterrows():
         residue_ids = [r for r in str(rep['residues']).split() if r]
-        pocket_feats = get_pocket_features(residue_ids)
+
+        # Build residue name map from representative PDB if pdb_dir provided
+        resname_map = {}
+        if pdb_dir:
+            file_name = str(rep.get('File name', ''))
+            # Strip p2rank prediction suffix to get PDB filename
+            # e.g. 'trajectory_test_data_30.pdb_predictions' -> 'trajectory_test_data_30.pdb'
+            pdb_name = file_name.replace('_predictions', '')
+            pdb_path = os.path.join(pdb_dir, pdb_name)
+            if os.path.exists(pdb_path):
+                resname_map = build_resname_map(pdb_path)
+            else:
+                _logger.warning("Representative PDB not found: %s", pdb_path)
+
+        pocket_feats = get_pocket_features(residue_ids, resname_map=resname_map)
         scores_actives = [score_complementarity(pocket_feats, lf) for lf in active_features]
         scores_decoys = [score_complementarity(pocket_feats, decoy_feat) for decoy_feat in decoy_features]
         metrics = compute_discrimination_metrics(scores_actives, scores_decoys)
