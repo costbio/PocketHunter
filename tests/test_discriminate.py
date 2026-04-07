@@ -127,12 +127,66 @@ def test_compute_metrics_ef1_perfect():
 
 def test_run_discrimination_missing_columns(tmp_path):
     import pandas as pd
-    # CSV missing 'cluster' column
-    bad_csv = tmp_path / "cluster_representatives.csv"
-    pd.DataFrame({'residues': ['A_1_ALA'], 'Frame': [1]}).to_csv(bad_csv, index=False)
-    actives_sdf = tmp_path / "actives.sdf"
-    actives_sdf.write_text("")
-    decoys_sdf = tmp_path / "decoys.sdf"
-    decoys_sdf.write_text("")
-    with pytest.raises(ValueError, match="missing required columns"):
-        run_discrimination(str(tmp_path), str(actives_sdf), str(decoys_sdf), str(tmp_path / "out"))
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    # Write a valid minimal SDF so SDF loading doesn't fail first
+    mol = Chem.MolFromSmiles('CCO')
+    mol = Chem.AddHs(mol)
+    AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
+    writer = Chem.SDWriter(str(tmp_path / 'actives.sdf'))
+    writer.write(mol)
+    writer.close()
+    writer2 = Chem.SDWriter(str(tmp_path / 'decoys.sdf'))
+    writer2.write(mol)
+    writer2.close()
+
+    # CSV missing 'cluster' column — should raise before scoring
+    bad_csv = tmp_path / 'cluster_representatives.csv'
+    pd.DataFrame({'residues': ['A_1_ALA A_2_ARG'], 'Frame': [1]}).to_csv(bad_csv, index=False)
+
+    with pytest.raises(ValueError, match='missing required columns'):
+        from discriminate import run_discrimination
+        run_discrimination(str(tmp_path), str(tmp_path / 'actives.sdf'),
+                           str(tmp_path / 'decoys.sdf'), str(tmp_path / 'out'))
+
+
+def test_run_discrimination_happy_path(tmp_path):
+    import pandas as pd
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    def _write_sdf(path, smiles_list):
+        writer = Chem.SDWriter(str(path))
+        for smi in smiles_list:
+            mol = Chem.MolFromSmiles(smi)
+            mol = Chem.AddHs(mol)
+            AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
+            writer.write(mol)
+        writer.close()
+
+    _write_sdf(tmp_path / 'actives.sdf', ['c1ccccc1O', 'CCN'])   # 2 actives
+    _write_sdf(tmp_path / 'decoys.sdf', ['CCCC', 'CCC', 'CC'])   # 3 decoys
+
+    reps_csv = tmp_path / 'cluster_representatives.csv'
+    pd.DataFrame({
+        'cluster': [0, 1],
+        'Frame': [10, 20],
+        'residues': ['A_1_ARG A_2_ASP A_3_PHE', 'A_4_ALA A_5_VAL A_6_LEU'],
+        'probability': [0.85, 0.72],
+    }).to_csv(reps_csv, index=False)
+
+    from discriminate import run_discrimination
+    df = run_discrimination(
+        cluster_dir=str(tmp_path),
+        actives_sdf=str(tmp_path / 'actives.sdf'),
+        decoys_sdf=str(tmp_path / 'decoys.sdf'),
+        outfolder=str(tmp_path / 'out'),
+    )
+
+    assert len(df) == 2
+    assert list(df.columns) >= ['cluster_id', 'frame', 'roc_auc', 'ef1', 'ef5']
+    assert df['roc_auc'].between(0.0, 1.0).all()
+    assert (tmp_path / 'out' / 'discrimination_results.csv').exists()
+    # Results sorted by roc_auc descending
+    assert df['roc_auc'].iloc[0] >= df['roc_auc'].iloc[1]

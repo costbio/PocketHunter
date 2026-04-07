@@ -8,6 +8,7 @@ cosine similarity. Outputs ranked conformations with ROC-AUC, EF1%, and EF5%.
 """
 
 import os
+import logging
 import numpy as np
 import pandas as pd
 from sklearn.metrics import roc_auc_score
@@ -34,7 +35,21 @@ _RDKIT_FEATURE_MAP = {
 }
 
 _FDEF_PATH = os.path.join(RDConfig.RDDataDir, 'BaseFeatures.fdef')
-_FACTORY = ChemicalFeatures.BuildFeatureFactory(_FDEF_PATH)
+_factory_instance = None
+
+_logger = logging.getLogger(__name__)
+
+
+def _get_factory():
+    global _factory_instance
+    if _factory_instance is None:
+        if not os.path.exists(_FDEF_PATH):
+            raise RuntimeError(
+                f"RDKit feature definition file not found: {_FDEF_PATH}. "
+                "Ensure rdkit data files are installed (e.g. conda install -c conda-forge rdkit)."
+            )
+        _factory_instance = ChemicalFeatures.BuildFeatureFactory(_FDEF_PATH)
+    return _factory_instance
 
 
 def _extract_resname(residue_id: str) -> str:
@@ -43,8 +58,15 @@ def _extract_resname(residue_id: str) -> str:
         clean = part.strip().upper()
         if len(clean) == 3 and clean.isalpha():
             return clean
+    # Fallback: expected format is CHAIN_NUM_RESNAME (e.g. 'A_1_ALA')
     alpha = ''.join(c for c in residue_id if c.isalpha())
-    return alpha[:3].upper() if len(alpha) >= 3 else ''
+    result = alpha[:3].upper() if len(alpha) >= 3 else ''
+    if result:
+        _logger.warning(
+            "Residue ID '%s' did not match expected CHAIN_NUM_RESNAME format; "
+            "extracted '%s' via fallback heuristic.", residue_id, result
+        )
+    return result
 
 
 def get_pocket_features(residue_ids: list) -> dict:
@@ -73,14 +95,14 @@ def get_ligand_features(mol) -> dict:
     if mol is None:
         return features
     try:
-        feats = _FACTORY.GetFeaturesForMol(mol)
+        feats = _get_factory().GetFeaturesForMol(mol)
         for feat in feats:
             family = feat.GetFamily()
             key = _RDKIT_FEATURE_MAP.get(family)
             if key:
                 features[key] += 1
-    except Exception:
-        pass
+    except Exception as exc:
+        _logger.warning("Failed to extract features from molecule: %s", exc)
     return features
 
 
@@ -162,7 +184,7 @@ def run_discrimination(cluster_dir: str, actives_sdf: str, decoys_sdf: str,
         residue_ids = [r for r in str(rep['residues']).split() if r]
         pocket_feats = get_pocket_features(residue_ids)
         scores_actives = [score_complementarity(pocket_feats, lf) for lf in active_features]
-        scores_decoys = [score_complementarity(pocket_feats, df) for df in decoy_features]
+        scores_decoys = [score_complementarity(pocket_feats, decoy_feat) for decoy_feat in decoy_features]
         metrics = compute_discrimination_metrics(scores_actives, scores_decoys)
         rows.append({
             'cluster_id': rep.get('cluster', ''),
