@@ -475,9 +475,11 @@ def run_discrimination(cluster_dir: str, actives_sdf: str, decoys_sdf: str,
     if len(decoys) > 2000:
         raise ValueError(f"Too many decoys: {len(decoys)} (max 2000)")
 
-    # Precompute ligand feature vectors once for all molecules
-    active_features = [get_ligand_features(mol) for mol in actives]
-    decoy_features = [get_ligand_features(mol) for mol in decoys]
+    # Precompute 1D and 3D ligand features once for all molecules
+    active_features_1d = [get_ligand_features(mol) for mol in actives]
+    decoy_features_1d = [get_ligand_features(mol) for mol in decoys]
+    active_features_3d = [get_ligand_features_3d(mol) for mol in actives]
+    decoy_features_3d = [get_ligand_features_3d(mol) for mol in decoys]
 
     # Auto-detect p2rank output directory for per-residue probability CSVs (Layer 1)
     p2rank_output_dir = None
@@ -496,8 +498,9 @@ def run_discrimination(cluster_dir: str, actives_sdf: str, decoys_sdf: str,
     for _, rep in df_reps.iterrows():
         residue_ids = [r for r in str(rep['residues']).split() if r]
 
-        # Build residue name map from representative PDB
+        # Build residue name map and Cα coord map from representative PDB
         resname_map = {}
+        ca_coord_map = {}
         if pdb_dir:
             file_name = str(rep.get('File name', ''))
             # Strip p2rank prediction suffix to get PDB filename
@@ -506,6 +509,7 @@ def run_discrimination(cluster_dir: str, actives_sdf: str, decoys_sdf: str,
             pdb_path = os.path.join(pdb_dir, pdb_name)
             if os.path.exists(pdb_path):
                 resname_map = build_resname_map(pdb_path)
+                ca_coord_map = build_ca_coord_map(pdb_path)  # Layer 2
             else:
                 _logger.warning("Representative PDB not found: %s", pdb_path)
 
@@ -525,8 +529,20 @@ def run_discrimination(cluster_dir: str, actives_sdf: str, decoys_sdf: str,
             residue_ids, resname_map=resname_map, residue_probs=residue_probs
         )
 
-        scores_actives = [score_complementarity(pocket_feats, lf) for lf in active_features]
-        scores_decoys = [score_complementarity(pocket_feats, df) for df in decoy_features]
+        # Layer 2: 3D feature positions for rotation-invariant distance scoring
+        # alpha=0.8 → 80% cosine (Layer 1) + 20% 3D kernel (Layer 2)
+        pocket_3d = []
+        if ca_coord_map:
+            pocket_3d = get_pocket_features_3d(residue_ids, resname_map, ca_coord_map)
+
+        scores_actives = [
+            score_combined(pocket_feats, lf_1d, pocket_3d, lf_3d, alpha=0.8)
+            for lf_1d, lf_3d in zip(active_features_1d, active_features_3d)
+        ]
+        scores_decoys = [
+            score_combined(pocket_feats, df_1d, pocket_3d, df_3d, alpha=0.8)
+            for df_1d, df_3d in zip(decoy_features_1d, decoy_features_3d)
+        ]
         metrics = compute_discrimination_metrics(scores_actives, scores_decoys)
         rows.append({
             'cluster_id': rep.get('cluster', ''),
