@@ -1,0 +1,172 @@
+cff-version: 1.2.0
+message: If you use this software, please cite both the software itself and the references listed.
+title: "PocketHunter: Pharmacophore-Based Binding Pocket Discrimination"
+type: software
+authors:
+  - family-names: PocketHunter
+    given-names: Suite
+version: 0.1.0
+date-released: 2025-05-11
+repository-code: "https://github.com/costbio/PocketHunter"
+abstract: >
+  Protein binding pocket detection and pharmacophore-based active/decoy
+  discrimination using p2rank pocket prediction, clustering, and 3D
+  pharmacophore complementarity scoring via RDKit Feature Maps.
+keywords:
+  - pharmacophore
+  - protein-ligand
+  - virtual-screening
+  - binding-pocket
+  - cheminformatics
+  - p2rank
+  - rdkit
+
+references:
+  # ── Core pharmacophore methodology ──
+  - type: article
+    title: "Feature-map vectors: a new class of informative descriptors for computational drug discovery"
+    authors:
+      - family-names: Landrum
+        given-names: Gregory A.
+      - family-names: Penzotti
+        given-names: Julie E.
+      - family-names: Putta
+        given-names: Santosh
+    journal: Journal of Computer-Aided Molecular Design
+    year: 2006
+    volume: 20
+    pages: 751-762
+    doi: 10.1007/s10822-006-9085-8
+    scope: "Gaussian feature map overlap scoring used in pharmacophore complementarity"
+
+  - type: article
+    title: "Conformation mining: An algorithm for finding biologically relevant conformations"
+    authors:
+      - family-names: Putta
+        given-names: Santosh
+      - family-names: Landrum
+        given-names: Gregory A.
+      - family-names: Penzotti
+        given-names: Julie E.
+    journal: Journal of Medicinal Chemistry
+    year: 2005
+    volume: 48
+    pages: 3313-3318
+    doi: 10.1021/jm049066l
+    scope: "Feature map concept and pharmacophore-based molecular comparison"
+
+  - type: article
+    title: "LigandScout: Automated Identification of 3D Pharmacophores from Protein-Ligand Complexes"
+    authors:
+      - family-names: Wolber
+        given-names: Gerhard
+      - family-names: Langer
+        given-names: Thierry
+    journal: Journal of Chemical Information and Modeling
+    year: 2005
+    volume: 45
+    issue: 1
+    pages: 160-169
+    doi: 10.1021/ci049885e
+    scope: "Structure-based pharmacophore feature definitions, sidechain-to-feature-type mapping"
+
+  # ── Pharmacophore definition ──
+  - type: article
+    title: "IUPAC Recommendations 1998: Glossary of terms used in medicinal chemistry (IUPAC Recommendations 1998)"
+    authors:
+      - name: "IUPAC Medicinal Chemistry Section"
+    journal: Pure and Applied Chemistry
+    year: 1998
+    volume: 70
+    pages: 1129-1143
+    doi: 10.1351/pac199870051129
+    scope: "Pharmacophore feature type definitions"
+
+  # ── Pocket prediction ──
+  - type: article
+    title: "P2Rank: machine learning based tool for rapid and accurate prediction of ligand binding sites from protein structure"
+    authors:
+      - family-names: Krivák
+        given-names: Radoslav
+      - family-names: Hoksza
+        given-names: David
+    journal: Journal of Cheminformatics
+    year: 2018
+    volume: 10
+    issue: 1
+    pages: 39
+    doi: 10.1186/s13321-018-0285-8
+    scope: "Binding pocket prediction used to identify pocket residues"
+
+  # ── Evaluation metrics ──
+  - type: article
+    title: "Evaluating Virtual Screening Methods: Good and Bad Metrics for the 'Early Recognition' Problem"
+    authors:
+      - family-names: Truchon
+        given-names: Jean-François
+      - family-names: Bayly
+        given-names: Christopher I.
+    journal: Journal of Chemical Information and Modeling
+    year: 2007
+    volume: 47
+    issue: 2
+    pages: 488-508
+    doi: 10.1021/ci600426e
+    scope: "ROC-AUC and enrichment factor metrics for virtual screening evaluation"
+
+  # ── Interaction fingerprint (alternative approach reference) ──
+  - type: article
+    title: "ProLIF: a library to encode molecular interactions as fingerprints"
+    authors:
+      - family-names: Bouysset
+        given-names: Cédric
+      - family-names: Fiorucci
+        given-names: Sébastien
+    journal: Journal of Cheminformatics
+    year: 2021
+    volume: 13
+    pages: 72
+    doi: 10.1186/s13321-021-00548-6
+    scope: "Interaction fingerprint alternative approach, IFP-Tanimoto similarity"
+
+  # ── Educational reference ──
+  - type: article
+    title: "TeachOpenCADD: a teaching platform for computer-aided drug design using open source packages and data"
+    authors:
+      - family-names: Sydow
+        given-names: Dominique
+      - family-names: Rodríguez-Guerra
+        given-names: Jaime
+      - family-names: Kimber
+        given-names: Talia B.
+      - family-names: Schaller
+        given-names: David
+      - family-names: Taylor
+        given-names: Corey J.
+      - family-names: Chen
+        given-names: Yonghui
+      - family-names: Leja
+        given-names: Mareike
+      - family-names: Misra
+        given-names: Sakshi
+      - family-names: Wichmann
+        given-names: Michele
+      - family-names: Ariamajd
+        given-names: Armin
+      - family-names: Volkamer
+        given-names: Andrea
+    journal: Nucleic Acids Research
+    year: 2022
+    volume: 50
+    issue: W1
+    pages: W753-W760
+    doi: 10.1093/nar/gkac267
+    scope: "T009 ligand-based pharmacophore reference implementation, RDKit feature definitions"
+
+  # ── RDKit ──
+  - type: software
+    title: "RDKit: Open-Source Cheminformatics Software"
+    authors:
+      - name: "RDKit Contributors"
+    url: "https://www.rdkit.org/"
+    scope: "Pharmacophore feature extraction (BaseFeatures.fdef), FeatMaps scoring, molecular I/O"
