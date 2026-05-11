@@ -774,10 +774,10 @@ def run_discrimination(cluster_dir: str, actives_sdf: str, decoys_sdf: str,
     if not decoys:
         raise ValueError(f"No valid molecules loaded from decoys SDF: {decoys_sdf}")
 
-    if len(actives) > 200:
-        raise ValueError(f"Too many actives: {len(actives)} (max 200)")
-    if len(decoys) > 2000:
-        raise ValueError(f"Too many decoys: {len(decoys)} (max 2000)")
+    if len(actives) > 2000:
+        raise ValueError(f"Too many actives: {len(actives)} (max 2000)")
+    if len(decoys) > 5000:
+        raise ValueError(f"Too many decoys: {len(decoys)} (max 5000)")
 
     # Precompute 1D and 3D ligand features once
     active_features_1d = [get_ligand_features(mol) for mol in actives]
