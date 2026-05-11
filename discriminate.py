@@ -643,7 +643,7 @@ def score_complementarity(pocket_features: dict, ligand_features: dict) -> float
 
 def score_combined(pocket_features: dict, ligand_features: dict,
                    pocket_3d: list, ligand_3d: list,
-                   alpha: float = 0.5, width: float = None) -> float:
+                   alpha: float = 0.9, width: float = None) -> float:
     """
     Combined pharmacophore score: weighted sum of 1D cosine complementarity
     and rotation-invariant 3D Gaussian feature overlap.
@@ -724,7 +724,7 @@ def _load_mols_from_sdf(sdf_path: str) -> list:
 
 def run_discrimination(cluster_dir: str, actives_sdf: str, decoys_sdf: str,
                        outfolder: str, pdb_dir: str = None,
-                       alpha: float = 0.5, width: float = None) -> pd.DataFrame:
+                       alpha: float = 0.9, width: float = 2.5) -> pd.DataFrame:
     """
     Run pharmacophore-based active/decoy discrimination for all cluster
     representatives.
@@ -745,8 +745,8 @@ def run_discrimination(cluster_dir: str, actives_sdf: str, decoys_sdf: str,
         decoys_sdf: Path to decoys SDF file (max 2000 molecules).
         outfolder: Output directory for discrimination_results.csv.
         pdb_dir: Directory containing representative PDB files.
-        alpha: Weight of 1D cosine in combined score (default 0.5).
-        width: Gaussian width for 3D scoring (default 1.0 Å).
+        alpha: Weight of 1D cosine in combined score (default 0.9).
+        width: Gaussian width for 3D scoring (default 2.5 Å).
 
     Returns:
         DataFrame sorted by ROC-AUC (descending).
