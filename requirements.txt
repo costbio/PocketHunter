@@ -9,3 +9,4 @@ nglview
 mdtraj
 scikit-learn
 rdkit
+prody

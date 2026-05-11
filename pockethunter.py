@@ -169,6 +169,8 @@ def discriminate_conformations(args, config):
         decoys_sdf=os.path.abspath(args.decoys),
         outfolder=os.path.abspath(args.outfolder),
         pdb_dir=os.path.abspath(args.pdb_dir) if args.pdb_dir else None,
+        alpha=args.alpha,
+        width=args.width,
     )
     logger.info("Discrimination complete. Results saved to %s", args.outfolder)
     logger.info("\n%s", df[['cluster_id', 'frame', 'roc_auc', 'ef1', 'ef5']].to_string(index=False))
@@ -261,6 +263,15 @@ def main():
         help="Directory containing representative PDB files (required when residue IDs "
              "use CHAIN_RESNUM format, e.g. from p2rank). Typically the 'pdbs/' folder "
              "from the extract step."
+    )
+    parser_disc.add_argument(
+        "--alpha", type=float, default=0.9,
+        help="Weight of 1D cosine score in combined scoring (0-1). "
+             "Default 0.9."
+    )
+    parser_disc.add_argument(
+        "--width", type=float, default=2.5,
+        help="Gaussian kernel width in Å for 3D feature overlap. Default 2.5."
     )
     parser_disc.add_argument(
         "--overwrite", action='store_true',

@@ -120,21 +120,12 @@ _SIDECHAIN_FEATURE_ATOMS = {
     'HIS':  {'aromatic': ['CG', 'ND1', 'CD2', 'CE1', 'NE2']},  # imidazole ring
 
     # ── Positive ionizable (protonated at physiological pH) ──
-    # LYS and ARG already covered by donor; HIS by donor
-    # Re-listed for completeness with ionizable-group centering
-    'ARG':  {'positive': ['CZ', 'NH1', 'NH2']},   # guanidinium centroid
-    'ARG':  {'positive': ['CZ', 'NH1', 'NH2']},   # guanidinium centroid
+    'ARG':  {'donor': ['NH1', 'NH2'],
+             'positive': ['CZ', 'NH1', 'NH2']},   # guanidinium
 
     # ── Negative ionizable (deprotonated at physiological pH) ──
     'ASP':  {'negative': ['CG', 'OD1', 'OD2']},   # carboxylate centroid
     'GLU':  {'negative': ['CD', 'OE1', 'OE2']},   # carboxylate centroid
-}
-
-# Fix: ARG appears twice above for different feature types.
-# Merge the two ARG entries.
-_SIDECHAIN_FEATURE_ATOMS['ARG'] = {
-    'donor': ['NH1', 'NH2'],
-    'positive': ['CZ', 'NH1', 'NH2'],
 }
 # SER, THR, TYR, HIS appear as both donor and acceptor; merge acceptor entries.
 _SIDECHAIN_FEATURE_ATOMS.setdefault('SER', {}).setdefault('acceptor', ['OG'])
