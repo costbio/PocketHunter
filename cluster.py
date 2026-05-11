@@ -188,6 +188,14 @@ def cluster_pockets(infile, outfolder, method, depth, min_prob, config, hierarch
                 logger.info('Performing hierarchical clustering within DBSCAN clusters.')
                 for cluster_label, cluster_data in cluster_members.items():
                     logger.info(f'Processing DBSCAN cluster {cluster_label} with {len(cluster_data)} members.')
+                    if len(cluster_data) < 2:
+                        logger.info(f'Skipping hierarchical clustering for cluster {cluster_label} — need ≥2 members.')
+                        cluster_data = cluster_data.copy()
+                        cluster_data.loc[:, 'hierarchical_cluster'] = 0
+                        cluster_data.to_csv(
+                            os.path.join(outfolder, f'cluster_{cluster_label}_hierarchical.csv')
+                        )
+                        continue
                     hierarchical_labels = hierarchical_clustering(
                         cluster_data[unique_residues], method='ward', threshold=1.0
                     )
