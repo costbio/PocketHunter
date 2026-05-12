@@ -1,0 +1,4 @@
+[submodule "PocketHunter"]
+	path = PocketHunter
+	url = git@github.com:costbio/PocketHunter.git
+	branch = feature/discrimination

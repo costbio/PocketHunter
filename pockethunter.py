@@ -248,11 +248,11 @@ def main():
     )
     parser_disc.add_argument(
         "--actives", required=True,
-        help="Path to actives SDF file (max 200 molecules)."
+        help="Path to actives SDF file (max 2000 molecules)."
     )
     parser_disc.add_argument(
         "--decoys", required=True,
-        help="Path to decoys SDF file (max 2000 molecules)."
+        help="Path to decoys SDF file (max 5000 molecules)."
     )
     parser_disc.add_argument(
         "--outfolder", required=True,

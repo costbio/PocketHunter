@@ -88,58 +88,51 @@ _NEGATIVE_RESNAMES = {'ASP', 'GLU'}
 #   - Charge: ionizable group centroids per IUPAC definitions
 
 _SIDECHAIN_FEATURE_ATOMS = {
-    # ── H-bond donors (heavy atom bearing exchangeable H) ──
-    'SER':  {'donor': ['OG']},
-    'THR':  {'donor': ['OG1']},
-    'TYR':  {'donor': ['OH']},
-    'ASN':  {'donor': ['ND2']},
-    'GLN':  {'donor': ['NE2']},
-    'LYS':  {'donor': ['NZ']},
-    'ARG':  {'donor': ['NH1', 'NH2']},    # guanidinium N centroid
-    'HIS':  {'donor': ['ND1', 'NE2']},    # imidazole N centroid
-    'TRP':  {'donor': ['NE1']},           # indole N
-
-    # ── H-bond acceptors (electronegative atom with lone pair) ──
-    'ASP':  {'acceptor': ['OD1', 'OD2']},  # carboxylate O centroid
-    'GLU':  {'acceptor': ['OE1', 'OE2']},  # carboxylate O centroid
-    'ASN':  {'acceptor': ['OD1']},
-    'GLN':  {'acceptor': ['OE1']},
-
-    # ── Hydrophobic (sidechain carbon atoms, excluding polar) ──
+    # Hydroxyl sidechains — donor and acceptor share the same atom
+    'SER':  {'donor': ['OG'],
+             'acceptor': ['OG']},
+    'THR':  {'donor': ['OG1'],
+             'acceptor': ['OG1']},
+    # Phenol — donor, acceptor, aromatic, hydrophobic
+    'TYR':  {'donor': ['OH'],
+             'acceptor': ['OH'],
+             'aromatic': ['CG', 'CD1', 'CD2', 'CE1', 'CE2', 'CZ'],
+             'hydrophobic': ['CB', 'CG', 'CD1', 'CD2', 'CE1', 'CE2', 'CZ']},
+    # Amide sidechains — each oxygen is acceptor, each nitrogen is donor
+    'ASN':  {'donor': ['ND2'],
+             'acceptor': ['OD1']},
+    'GLN':  {'donor': ['NE2'],
+             'acceptor': ['OE1']},
+    # Positively ionizable donors
+    'LYS':  {'donor': ['NZ'],
+             'positive': ['NZ']},
+    'ARG':  {'donor': ['NH1', 'NH2'],
+             'positive': ['CZ', 'NH1', 'NH2']},
+    # Imidazole — donor, acceptor, aromatic, positive (protonated at physiological pH)
+    'HIS':  {'donor': ['ND1', 'NE2'],
+             'acceptor': ['ND1', 'NE2'],
+             'aromatic': ['CG', 'ND1', 'CD2', 'CE1', 'NE2'],
+             'positive': ['ND1', 'NE2']},
+    # Indole — donor, aromatic, hydrophobic
+    'TRP':  {'donor': ['NE1'],
+             'aromatic': ['CG', 'CD1', 'CD2', 'CE2', 'CE3', 'CZ2', 'CZ3', 'CH2'],
+             'hydrophobic': ['CB', 'CG', 'CD1', 'CD2', 'CE2', 'CE3', 'CZ2', 'CZ3', 'CH2']},
+    # Carboxylate sidechains — acceptor and negatively ionizable
+    'ASP':  {'acceptor': ['OD1', 'OD2'],
+             'negative': ['CG', 'OD1', 'OD2']},
+    'GLU':  {'acceptor': ['OE1', 'OE2'],
+             'negative': ['CD', 'OE1', 'OE2']},
+    # Aliphatic hydrophobic
     'ALA':  {'hydrophobic': ['CB']},
     'VAL':  {'hydrophobic': ['CG1', 'CG2']},
     'ILE':  {'hydrophobic': ['CG2', 'CD1']},
     'LEU':  {'hydrophobic': ['CD1', 'CD2']},
-    'MET':  {'hydrophobic': ['SD', 'CE']},   # thioether
+    'MET':  {'hydrophobic': ['SD', 'CE']},
     'PRO':  {'hydrophobic': ['CG', 'CD']},
-
-    # ── Aromatic (ring centroids) ──
-    'PHE':  {'aromatic': ['CG', 'CD1', 'CD2', 'CE1', 'CE2', 'CZ']},
-    'TYR':  {'aromatic': ['CG', 'CD1', 'CD2', 'CE1', 'CE2', 'CZ']},
-    'TRP':  {'aromatic': ['CG', 'CD1', 'CD2', 'CE2', 'CE3', 'CZ2', 'CZ3', 'CH2']},
-    'HIS':  {'aromatic': ['CG', 'ND1', 'CD2', 'CE1', 'NE2']},  # imidazole ring
-
-    # ── Positive ionizable (protonated at physiological pH) ──
-    'ARG':  {'donor': ['NH1', 'NH2'],
-             'positive': ['CZ', 'NH1', 'NH2']},   # guanidinium
-
-    # ── Negative ionizable (deprotonated at physiological pH) ──
-    'ASP':  {'negative': ['CG', 'OD1', 'OD2']},   # carboxylate centroid
-    'GLU':  {'negative': ['CD', 'OE1', 'OE2']},   # carboxylate centroid
+    # Aromatic + hydrophobic
+    'PHE':  {'aromatic': ['CG', 'CD1', 'CD2', 'CE1', 'CE2', 'CZ'],
+             'hydrophobic': ['CB', 'CG', 'CD1', 'CD2', 'CE1', 'CE2', 'CZ']},
 }
-# SER, THR, TYR, HIS appear as both donor and acceptor; merge acceptor entries.
-_SIDECHAIN_FEATURE_ATOMS.setdefault('SER', {}).setdefault('acceptor', ['OG'])
-_SIDECHAIN_FEATURE_ATOMS.setdefault('THR', {}).setdefault('acceptor', ['OG1'])
-_SIDECHAIN_FEATURE_ATOMS.setdefault('TYR', {}).setdefault('acceptor', ['OH'])
-_SIDECHAIN_FEATURE_ATOMS.setdefault('HIS', {}).setdefault('acceptor', ['ND1', 'NE2'])
-# Hydrophobic entries for aromatic residues (they also have hydrophobic character)
-_SIDECHAIN_FEATURE_ATOMS.setdefault('PHE', {}).setdefault('hydrophobic', ['CB', 'CG', 'CD1', 'CD2', 'CE1', 'CE2', 'CZ'])
-_SIDECHAIN_FEATURE_ATOMS.setdefault('TYR', {}).setdefault('hydrophobic', ['CB', 'CG', 'CD1', 'CD2', 'CE1', 'CE2', 'CZ'])
-_SIDECHAIN_FEATURE_ATOMS.setdefault('TRP', {}).setdefault('hydrophobic', ['CB', 'CG', 'CD1', 'CD2', 'CE2', 'CE3', 'CZ2', 'CZ3', 'CH2'])
-# Positive features for LYS
-_SIDECHAIN_FEATURE_ATOMS.setdefault('LYS', {}).setdefault('positive', ['NZ'])
-_SIDECHAIN_FEATURE_ATOMS.setdefault('HIS', {}).setdefault('positive', ['ND1', 'NE2'])
-# Negative already covered for ASP/GLU above.
 
 _RDKIT_FEATURE_MAP = {
     'Donor': 'donor',
@@ -167,10 +160,11 @@ _COMPLEMENTARY = {
 _FDEF_PATH = os.path.join(RDConfig.RDDataDir, 'BaseFeatures.fdef')
 _factory_instance = None
 
-# Gaussian kernel width (sigma) for FeatMaps Gaussian profile.
-# Default RDKit value is 1.0 Å. Controls tolerance for feature position matching.
-# Reference: Landrum, Penzotti & Putta (2006) — FeatMapParams.width
-_GAUSSIAN_WIDTH = 1.0
+# Gaussian kernel width (sigma, in Å) for the distance-pattern scoring kernel.
+# 2.5 Å gives a comfortable tolerance for intramolecular distance comparison;
+# tighter values (< 1.5 Å) yield near-zero scores for most feature pairs.
+# Overridden by the width parameter in run_discrimination (default 2.5 Å).
+_GAUSSIAN_WIDTH = 2.5
 
 _logger = logging.getLogger(__name__)
 
@@ -512,13 +506,13 @@ def score_complementarity_3d(pocket_3d: list, ligand_3d: list,
         For each pocket pair, the best-matching ligand pair kernel value is
         taken. The final score is the mean over all pocket pairs.
 
-    The Gaussian kernel derives from the RDKit FeatMaps implementation:
-        Landrum, Penzotti & Putta (2006), DOI: 10.1007/s10822-006-9085-8
-
-    Rotation invariance is achieved by comparing intramolecular distance
-    patterns rather than absolute 3D positions. This approach is analogous
-    to pharmacophore triplet/distance-key methods used in 3D pharmacophore
-    fingerprinting (e.g., RDKit Pharm2D).
+    The Gaussian kernel function exp(−d²/2σ²) is borrowed from RDKit FeatMaps
+    (Landrum, Penzotti & Putta, 2006), but the methodology differs: FeatMaps
+    scores overlap between two feature *positions* in 3D space, whereas here
+    the kernel is applied to the *difference of intramolecular distances*
+    (|d_pocket − d_ligand|). This comparison of distance patterns achieves
+    rotation invariance without requiring superposition, analogous to
+    pharmacophore distance-key fingerprinting (e.g., RDKit Pharm2D).
 
     Args:
         pocket_3d: List of (feat_type, coords) tuples for the pocket.
@@ -649,7 +643,7 @@ def score_combined(pocket_features: dict, ligand_features: dict,
         pocket_3d: List of (feat_type, coords) for pocket sidechain features.
         ligand_3d: List of (feat_type, coords) for ligand RDKit features.
         alpha: Weight of 1D cosine score. 1−alpha is weight of 3D score.
-               Default 0.5 gives equal weight to both components.
+               Default 0.9 weights cosine heavily; use 0.5 for equal weighting.
         width: Gaussian width for 3D scoring (Å). Defaults to _GAUSSIAN_WIDTH.
 
     Returns:
@@ -732,7 +726,7 @@ def run_discrimination(cluster_dir: str, actives_sdf: str, decoys_sdf: str,
 
     Args:
         cluster_dir: Path to pocket_clusters output directory.
-        actives_sdf: Path to actives SDF file (max 200 molecules).
+        actives_sdf: Path to actives SDF file (max 2000 molecules).
         decoys_sdf: Path to decoys SDF file (max 2000 molecules).
         outfolder: Output directory for discrimination_results.csv.
         pdb_dir: Directory containing representative PDB files.
