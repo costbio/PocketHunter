@@ -25,12 +25,13 @@ residues CSV for Layer 1; representative PDB for Layer 2).
 
 References
 ----------
-Feature map scoring (Gaussian profile):
+Gaussian kernel (feature-map scoring):
     Landrum, Penzotti & Putta, J. Comput. Aided Mol. Des. 20, 751–762 (2006).
     DOI: https://doi.org/10.1007/s10822-006-9085-8
 
-    Putta, Landrum & Penzotti, J. Med. Chem. 48, 3313–3318 (2005).
-    DOI: https://doi.org/10.1021/jm049066l
+Distance-pattern pharmacophore complementarity (Layer 2 methodology):
+    Mahé, Ralaivola, Stoven & Vert, J. Chem. Inf. Model. 46, 2003–2014 (2006).
+    DOI: https://doi.org/10.1021/ci060138m
 
 Structure-based pharmacophore feature definitions:
     Wolber & Langer, J. Chem. Inf. Model. 45, 160–169 (2005).
@@ -506,13 +507,13 @@ def score_complementarity_3d(pocket_3d: list, ligand_3d: list,
         For each pocket pair, the best-matching ligand pair kernel value is
         taken. The final score is the mean over all pocket pairs.
 
-    The Gaussian kernel function exp(−d²/2σ²) is borrowed from RDKit FeatMaps
-    (Landrum, Penzotti & Putta, 2006), but the methodology differs: FeatMaps
-    scores overlap between two feature *positions* in 3D space, whereas here
-    the kernel is applied to the *difference of intramolecular distances*
-    (|d_pocket − d_ligand|). This comparison of distance patterns achieves
-    rotation invariance without requiring superposition, analogous to
-    pharmacophore distance-key fingerprinting (e.g., RDKit Pharm2D).
+    The distance-pattern comparison approach (scoring |d_pocket − d_ligand|
+    rather than positional overlap) achieves rotation invariance without
+    superposition, following the pharmacophore kernel framework of Mahé,
+    Ralaivola, Stoven & Vert (J. Chem. Inf. Model. 46, 2003–2014, 2006;
+    DOI: 10.1021/ci060138m). The Gaussian kernel function exp(−d²/2σ²) is
+    from Landrum, Penzotti & Putta (J. Comput. Aided Mol. Des. 20, 751–762,
+    2006; DOI: 10.1007/s10822-006-9085-8).
 
     Args:
         pocket_3d: List of (feat_type, coords) tuples for the pocket.
