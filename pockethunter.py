@@ -167,8 +167,14 @@ def xtc_to_pdb_conversion(xtc_file, topology, stride, outfolder, overwrite, conf
         os.makedirs(outfolder, exist_ok=True)
         pdb_files = []
         for i, frame in enumerate(traj):
-            real_frame_number = (i+1)*stride
-            pdb_file = os.path.join(outfolder, f"{os.path.splitext(os.path.basename(xtc_file))[0]}_{real_frame_number}.pdb")
+            # md.load_xtc(..., stride=stride) has already applied the stride:
+            # element i of traj is original (unstrided) frame i*stride. Do not
+            # add 1 here -- that would label each extracted structure with the
+            # frame *after* the one it was actually cut from (e.g. the
+            # structure from original frame 0 would be named "_10.pdb" at
+            # stride=10), which is silently wrong rather than out of range.
+            original_frame_index = i*stride
+            pdb_file = os.path.join(outfolder, f"{os.path.splitext(os.path.basename(xtc_file))[0]}_{original_frame_index}.pdb")
             frame.save_pdb(pdb_file)
             pdb_files.append(pdb_file)
             # Log progress every 10%
