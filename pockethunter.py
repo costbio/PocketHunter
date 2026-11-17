@@ -378,6 +378,16 @@ def hierarchical_clustering(data, method='ward', threshold=1.0):
     cluster_labels = fcluster(linkage_matrix, t=threshold, criterion='distance')
     return cluster_labels
 
+def sequence_to_binary(sequence, residues_list):
+    """Return a 0/1 Series marking which residues in residues_list occur in sequence.
+
+    Residue IDs are matched as whole tokens. A substring test on the raw
+    string (`res in sequence`) makes "A_12" match inside "A_123" (issue #10).
+    """
+    present = set(str(sequence).split())
+    binary_vector = [1 if res in present else 0 for res in residues_list]
+    return pd.Series(binary_vector, index=residues_list)
+
 def perform_clustering(infile, outfolder, method, depth, min_prob, config, hierarchical=False):
 
     logger = config['logger']
@@ -399,11 +409,6 @@ def perform_clustering(infile, outfolder, method, depth, min_prob, config, hiera
     all_residues = [residue for residue in all_residues if residue != '']
 
     unique_residues = sorted(list(set(all_residues)))  # Get unique residues and sort them for consistency
-
-    # Function to create binary vector
-    def sequence_to_binary(sequence, residues_list):
-        binary_vector = [1 if res in sequence else 0 for res in residues_list]
-        return pd.Series(binary_vector, index=residues_list)
 
     # Apply the function and create the binary DataFrame
     logger.info('Binarizing the pocket data frame.')
